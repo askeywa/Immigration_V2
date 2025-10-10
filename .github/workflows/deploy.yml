@@ -213,6 +213,11 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no ${USER}@${HOST} << 'ENDSSH'
             set -e  # Exit on any error
             
+            echo "Cleaning existing deployment..."
+            sudo rm -rf /var/www/immigration-portal/*
+            sudo rm -rf /var/www/immigration-portal/.git
+            sudo rm -rf /var/www/immigration-portal/.[^.]*
+            
             echo "Updating repository..."
             if [ ! -d "/var/www/immigration-portal/.git" ]; then
               cd /var/www/immigration-portal
