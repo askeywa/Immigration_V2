@@ -219,16 +219,8 @@ jobs:
             sudo rm -rf /var/www/immigration-portal/.[^.]*
             
             echo "Updating repository..."
-            if [ ! -d "/var/www/immigration-portal/.git" ]; then
-              cd /var/www/immigration-portal
-              git clone https://github.com/askeywa/Immigration_V2.git .
-            else
-              cd /var/www/immigration-portal
-              # Force clean any local changes
-              git fetch origin master
-              git reset --hard origin/master
-              git clean -fd
-            fi
+            cd /var/www/immigration-portal
+            git clone https://github.com/askeywa/Immigration_V2.git .
             
             # Move env file to correct location (after git clone)
             mv /tmp/env.production /var/www/immigration-portal/backend/.env
