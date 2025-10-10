@@ -1,13 +1,5 @@
 // backend/src/config/sentry.ts
 import * as Sentry from '@sentry/node';
-import { nodeProfilingIntegration } from '@sentry/profiling-node';
-import { 
-  expressIntegration,
-  mongoIntegration,
-  mysqlIntegration,
-  postgresIntegration,
-  prismaIntegration
-} from '@sentry/integrations';
 import { config } from './config';
 import { log } from '../utils/logger';
 
@@ -16,7 +8,6 @@ export interface SentryConfig {
   environment: string;
   release: string;
   tracesSampleRate: number;
-  profilesSampleRate: number;
   beforeSend?: (event: Sentry.Event) => Sentry.Event | null;
   beforeSendTransaction?: (event: any) => any | null;
   integrations: Sentry.NodeOptions['integrations'];
@@ -40,15 +31,8 @@ export class SentryService {
       environment: process.env.NODE_ENV || 'development',
       release: process.env.SENTRY_RELEASE || process.env.npm_package_version || '1.0.0',
       tracesSampleRate: parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE || '0.1'),
-      profilesSampleRate: parseFloat(process.env.SENTRY_PROFILES_SAMPLE_RATE || '0.1'),
       integrations: [
         Sentry.httpIntegration(),
-        expressIntegration(),
-        mongoIntegration(),
-        mysqlIntegration(),
-        postgresIntegration(),
-        prismaIntegration(),
-        nodeProfilingIntegration(),
       ],
       tags: {
         service: 'immigration-portal-backend',
@@ -87,7 +71,6 @@ export class SentryService {
         environment: this.config.environment,
         release: this.config.release,
         tracesSampleRate: this.config.tracesSampleRate,
-        profilesSampleRate: this.config.profilesSampleRate,
         integrations: this.config.integrations,
         beforeSend: this.config.beforeSend as any,
         beforeSendTransaction: this.config.beforeSendTransaction,
@@ -109,8 +92,7 @@ export class SentryService {
       log.info('Sentry initialized successfully', {
         environment: this.config.environment,
         release: this.config.release,
-        tracesSampleRate: this.config.tracesSampleRate,
-        profilesSampleRate: this.config.profilesSampleRate
+        tracesSampleRate: this.config.tracesSampleRate
       });
     } catch (error) {
       log.error('Failed to initialize Sentry', {

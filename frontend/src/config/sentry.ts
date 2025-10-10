@@ -1,7 +1,7 @@
 // frontend/src/config/sentry.ts
 import React from 'react';
 import * as Sentry from '@sentry/react';
-import { BrowserTracing } from '@sentry/tracing';
+// import { BrowserTracing } from '@sentry/tracing'; // Removed - not available in current version
 import { useLocation, useNavigationType, createRoutesFromChildren, matchRoutes } from 'react-router-dom';
 
 export interface SentryConfig {
@@ -34,8 +34,7 @@ export class SentryService {
       tracesSampleRate: parseFloat(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE || '0.1'),
       integrations: [
         // Simplified integrations to prevent frontend crashes
-        new BrowserTracing() as any,
-        // Removed Sentry.Replay as it's not available in current version
+        // Removed BrowserTracing and Replay as they're not available in current version
       ],
       tags: {
         service: 'immigration-portal-frontend',

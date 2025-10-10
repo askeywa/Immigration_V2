@@ -73,7 +73,7 @@ export default defineConfig({
           'ui': ['@headlessui/react', '@heroicons/react'],
           
           // Sentry (non-critical, separate chunk)
-          'monitoring': ['@sentry/react', '@sentry/tracing'],
+          'monitoring': ['@sentry/react'],
         },
         
         // Asset file names with hash for cache busting
