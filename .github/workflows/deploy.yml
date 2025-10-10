@@ -2,9 +2,9 @@ name: Deploy to EC2
 
 on:
   push:
-    branches: [ main, production ]
+    branches: [ master, production ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
 
 jobs:
   test:
@@ -103,7 +103,7 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     
     steps:
       - uses: actions/checkout@v3
@@ -225,12 +225,12 @@ jobs:
             echo "Updating repository..."
             if [ ! -d "/var/www/immigration-portal/.git" ]; then
               cd /var/www/immigration-portal
-              git clone https://github.com/askeywa/Immigration.git .
+              git clone https://github.com/askeywa/Immigration_V2.git .
             else
               cd /var/www/immigration-portal
               # Force clean any local changes
-              git fetch origin main
-              git reset --hard origin/main
+              git fetch origin master
+              git reset --hard origin/master
               git clean -fd
             fi
             
