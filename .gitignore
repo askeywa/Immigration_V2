@@ -1,0 +1,150 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+.server.lock
+.server.pid
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Documentation files (exclude generated docs, keep important ones)
+# *.md files are NOT ignored - we want to keep documentation
+
+# Test files and debug images
+*.png
+test-*.js
+debug-*.js
+user-dashboard-*.js
+super-admin-*.js
+real-*.js
+simple-*.js
+focused-*.js
+direct-*.js
+detailed-*.js
+comprehensive-*.js
+highlighting-*.js
+login-*.js
+token-*.js
+role-*.js
+remove-*.js
+professional-*.js
+tenant-*.js
+fixed-*.js
+final-*.js
+clean-*.js
+component-*.js
+app-*.js
+create-*.js
+dashboard-*.js
+run-*.js
+check-*.js
+api-*.js
+browser-*.js
+
+# Additional test and temporary files
+*test*.js
+*test*.ts
+*test*.html
+*test*.json
+*test*.md
+*test*.txt
+*test*.sh
+*test*.py
+*test*.sql
+*test*.log
+
+# Environment files (all variations)
+.env*
+!.env.example
+!.env.template
+!.env.sample
+
+# Production environment files
+production-env-template.txt
+backend/.env.production
+frontend/.env.production

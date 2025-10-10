@@ -1,0 +1,650 @@
+// frontend/src/pages/tenant/TenantAdminDashboard.tsx
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { 
+  UsersIcon, 
+  ChartBarIcon, 
+  CogIcon,
+  BellIcon,
+  ShieldCheckIcon,
+  ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  XCircleIcon,
+  BuildingOfficeIcon,
+  DocumentTextIcon,
+  CurrencyDollarIcon,
+  ArrowPathIcon,
+  UserGroupIcon,
+  DocumentChartBarIcon
+} from '@heroicons/react/24/outline';
+import { useTenant } from '@/contexts/TenantContext';
+import { useAuthStore } from '@/store/authStore';
+import { tenantApiService } from '@/services/tenantApiService';
+import { useTenantStats, useTenantActivity } from '@/hooks/useDashboardData';
+import { log } from '@/utils/logger';
+import { Card } from '@/components/ui/card';
+import { DashboardHeader } from '@/components/common';
+
+interface TenantStats {
+  totalUsers: number;
+  activeUsers: number;
+  newUsersThisMonth: number;
+  totalDocuments: number;
+  pendingDocuments: number;
+  monthlyRevenue: number;
+  subscription: {
+    planName: string;
+    status: string;
+    expiresAt: string;
+    features: string[];
+  };
+  usage: {
+    storageUsed: number;
+    storageLimit: number;
+    bandwidthUsed: number;
+    bandwidthLimit: number;
+    apiCallsUsed: number;
+    apiCallsLimit: number;
+  };
+  performance: {
+    avgResponseTime: number;
+    uptime: number;
+    errorRate: number;
+  };
+}
+
+interface RecentActivity {
+  _id: string;
+  type: 'user_registered' | 'document_uploaded' | 'payment_received' | 'system_alert' | 'user_updated';
+  description: string;
+  timestamp: string;
+  userId?: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  metadata?: any;
+}
+
+interface QuickAction {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  href: string;
+  color: string;
+}
+
+interface MetricCardProps {
+  title: string;
+  value: string | number;
+  change?: string;
+  trend?: 'up' | 'down' | 'neutral';
+  icon: React.ElementType;
+  color: 'blue' | 'green' | 'purple' | 'orange' | 'red';
+  subtitle?: string;
+}
+
+// Enhanced Metric Card Component
+const MetricCard: React.FC<MetricCardProps> = ({ 
+  title, 
+  value, 
+  change, 
+  trend, 
+  icon: Icon, 
+  color, 
+  subtitle 
+}) => {
+  const colorClasses = {
+    blue: 'bg-blue-100 text-blue-600',
+    green: 'bg-green-100 text-green-600',
+    purple: 'bg-purple-100 text-purple-600',
+    orange: 'bg-orange-100 text-orange-600',
+    red: 'bg-red-100 text-red-600'
+  };
+
+  const trendClasses = {
+    up: 'text-green-600',
+    down: 'text-red-600',
+    neutral: 'text-gray-600'
+  };
+
+  return (
+    <Card className="p-6 border-0 shadow-md hover:shadow-lg transition-all duration-200 bg-white">
+      <div className="flex flex-col justify-between h-full">
+        {/* Top Section */}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium text-gray-500 truncate">{title}</h3>
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colorClasses[color]}`}>
+            <Icon className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Middle Section */}
+        <div className="flex-1 flex flex-col justify-center">
+          <motion.p 
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-2xl font-bold text-gray-900 mb-1"
+          >
+            {value}
+          </motion.p>
+        </div>
+
+        {/* Bottom Section */}
+        <div className="space-y-1">
+          {change && trend && (
+            <p className={`text-sm font-medium ${trendClasses[trend]}`}>
+              {trend === 'up' && '↗'} {trend === 'down' && '↘'} {change}
+            </p>
+          )}
+          {subtitle && (
+            <p className="text-xs text-gray-500">{subtitle}</p>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+export const TenantAdminDashboard: React.FC = () => {
+  const { tenant, isTenantAdmin } = useTenant();
+  const { user } = useAuthStore();
+  
+  // Use React Query for cached data fetching
+  console.log('🔍 TenantAdminDashboard: About to call React Query hooks');
+  console.log('🔍 TenantAdminDashboard: isTenantAdmin:', isTenantAdmin);
+  console.log('🔍 TenantAdminDashboard: tenant:', tenant?._id);
+  
+  const { 
+    data: tenantStats, 
+    isLoading: statsLoading, 
+    error: statsError 
+  } = useTenantStats();
+  
+  const { 
+    data: recentActivity = [], 
+    isLoading: activityLoading, 
+    error: activityError 
+  } = useTenantActivity();
+  
+  console.log('🔍 TenantAdminDashboard: React Query results:');
+  console.log('  - tenantStats:', !!tenantStats);
+  console.log('  - statsLoading:', statsLoading);
+  console.log('  - statsError:', statsError);
+  console.log('  - recentActivity:', recentActivity.length);
+  console.log('  - activityLoading:', activityLoading);
+  console.log('  - activityError:', activityError);
+  
+  // Combined loading state
+  const isLoading = statsLoading || activityLoading;
+  const error = statsError || activityError;
+
+  // Quick actions for tenant admins
+  const quickActions: QuickAction[] = [
+    {
+      id: 'manage-users',
+      title: 'Manage Users',
+      description: 'Add, edit, or remove users',
+      icon: UsersIcon,
+      href: '/tenant/users',
+      color: 'bg-blue-500 hover:bg-blue-600'
+    },
+    {
+      id: 'tenant-settings',
+      title: 'Tenant Settings',
+      description: 'Configure tenant preferences',
+      icon: CogIcon,
+      href: '/tenant/settings',
+      color: 'bg-gray-500 hover:bg-gray-600'
+    },
+    {
+      id: 'billing',
+      title: 'Billing & Subscription',
+      description: 'Manage subscription and billing',
+      icon: CurrencyDollarIcon,
+      href: '/tenant/billing',
+      color: 'bg-green-500 hover:bg-green-600'
+    },
+    {
+      id: 'branding',
+      title: 'Branding',
+      description: 'Customize tenant appearance',
+      icon: BuildingOfficeIcon,
+      href: '/tenant/branding',
+      color: 'bg-purple-500 hover:bg-purple-600'
+    },
+    {
+      id: 'analytics',
+      title: 'Analytics',
+      description: 'View tenant analytics',
+      icon: ChartBarIcon,
+      href: '/tenant/analytics',
+      color: 'bg-indigo-500 hover:bg-indigo-600'
+    },
+    {
+      id: 'invitations',
+      title: 'User Invitations',
+      description: 'Send user invitations',
+      icon: DocumentTextIcon,
+      href: '/tenant/invitations',
+      color: 'bg-orange-500 hover:bg-orange-600'
+    }
+  ];
+
+  // Data is now automatically loaded by React Query hooks
+  // No manual loading needed! // Proper stable dependencies
+  
+  // Debug rendering state (reduced logging)
+  // console.log('🔍 TenantAdminDashboard Render State:', {
+  //   isLoading,
+  //   hasError: !!error,
+  //   hasTenantStats: !!tenantStats,
+  //   hasRecentActivity: recentActivity.length,
+  //   isTenantAdmin,
+  //   tenant: tenant?.name
+  // });
+
+  // Auto-refresh disabled for debugging
+  // useEffect(() => {
+  //   if (isTenantAdmin) {
+  //     const interval = setInterval(loadDashboardData, 30000);
+  //     return () => clearInterval(interval);
+  //   }
+  // }, [isTenantAdmin]);
+
+  // Get severity color
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'critical': return 'text-red-600 bg-red-100';
+      case 'high': return 'text-orange-600 bg-orange-100';
+      case 'medium': return 'text-yellow-600 bg-yellow-100';
+      case 'low': return 'text-green-600 bg-green-100';
+      default: return 'text-gray-600 bg-gray-100';
+    }
+  };
+
+  // Get activity icon
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'user_registered': return UsersIcon;
+      case 'document_uploaded': return DocumentTextIcon;
+      case 'payment_received': return CurrencyDollarIcon;
+      case 'system_alert': return ExclamationTriangleIcon;
+      case 'user_updated': return CheckCircleIcon;
+      default: return BellIcon;
+    }
+  };
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  // Format percentage
+  const formatPercentage = (value: number) => {
+    return `${value.toFixed(1)}%`;
+  };
+
+  // Format bytes
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Debug logging (temporarily disabled)
+  // console.log('🔍 TenantAdminDashboard Debug:', {
+  //   isTenantAdmin,
+  //   isSuperAdmin,
+  //   isTenantUser,
+  //   userRole: (window as any).authStore?.getState?.()?.user?.role || 'no user',
+  //   isLoading,
+  //   error
+  // });
+
+  if (!isTenantAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <ShieldCheckIcon className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
+          <p className="text-gray-600">Tenant admin access required for this page.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading tenant dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error('🔍 Dashboard Error:', error);
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <ExclamationTriangleIcon className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Dashboard</h1>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={loadDashboardData}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Safety check for rendering
+  console.log('🔍 About to render dashboard with state:', {
+    tenantStats: !!tenantStats,
+    recentActivity: recentActivity.length,
+    error,
+    isLoading
+  });
+
+  return (
+    <div className="min-h-full bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+      {/* Dashboard Header */}
+      <DashboardHeader
+        title="Tenant Dashboard"
+        subtitle={`Welcome back, ${user?.firstName || 'Admin'} ${user?.lastName || 'User'}`}
+        showRefresh={true}
+        showLogout={false}
+        showProfile={true}
+        showNotifications={false}
+        showSettings={true}
+        onRefresh={() => window.location.reload()}
+        onSettingsClick={() => {/* Navigate to settings */}}
+        isLoading={isLoading}
+        customActions={
+          <div className="text-sm text-gray-500">
+            Managing: {tenant?.name || 'Unknown Tenant'}
+          </div>
+        }
+      />
+
+      <div className="max-w-7xl mx-auto px-6 pb-6">
+        {/* Error Display */}
+        {error && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 bg-red-50 border border-red-200 rounded-md p-4"
+          >
+            <div className="flex">
+              <ExclamationTriangleIcon className="h-5 w-5 text-red-400 mr-2" />
+              <div className="text-sm text-red-700">{error}</div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Quick Actions Bar */}
+        {!isLoading && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mb-8"
+          >
+            <div className="bg-white p-4 rounded-lg shadow-md border-0 bg-gradient-to-r from-blue-50 to-indigo-50">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+                <div className="flex items-center space-x-3">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors duration-200"
+                  >
+                    <UsersIcon className="w-4 h-4 mr-2" />
+                    Manage Users
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition-colors duration-200"
+                  >
+                    <DocumentTextIcon className="w-4 h-4 mr-2" />
+                    Manage Documents
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 transition-colors duration-200"
+                  >
+                    <DocumentChartBarIcon className="w-4 h-4 mr-2" />
+                    View Reports
+                  </motion.button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Enhanced Tenant Overview Cards */}
+        {tenantStats && !isLoading && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mb-8"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" style={{ gridTemplateRows: 'minmax(160px, 1fr)' }}>
+              <div className="flex">
+                <MetricCard
+                  title="Total Users"
+                  value={tenantStats.totalUsers}
+                  change={`+${tenantStats.newUsersThisMonth} this month`}
+                  trend="up"
+                  icon={UsersIcon}
+                  color="blue"
+                  subtitle={`${tenantStats.activeUsers} active users`}
+                />
+              </div>
+              
+              <div className="flex">
+                <MetricCard
+                  title="Documents"
+                  value={tenantStats.totalDocuments}
+                  change={`${tenantStats.pendingDocuments} pending`}
+                  trend="neutral"
+                  icon={DocumentTextIcon}
+                  color="green"
+                />
+              </div>
+              
+              <div className="flex">
+                <MetricCard
+                  title="Monthly Revenue"
+                  value={formatCurrency(tenantStats.monthlyRevenue)}
+                  icon={CurrencyDollarIcon}
+                  color="purple"
+                  subtitle={`Plan: ${tenantStats?.subscription?.planName || 'No Plan'}`}
+                />
+              </div>
+              
+              <div className="flex">
+                <MetricCard
+                  title="Performance"
+                  value={`${formatPercentage(tenantStats?.performance?.uptime || 99.8)} uptime`}
+                  icon={ChartBarIcon}
+                  color="orange"
+                  subtitle={`${tenantStats?.performance?.avgResponseTime || 245}ms avg response`}
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+          {/* Enhanced Recent Activity */}
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="h-full shadow-lg border-0">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-semibold text-gray-900">Recent Activity</h3>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-sm text-gray-500">Live</span>
+                  </div>
+                </div>
+              <div className="flow-root">
+                <ul className="-mb-8">
+                  {(recentActivity || []).map((activity, activityIdx) => {
+                    const ActivityIcon = getActivityIcon(activity.type);
+                    return (
+                      <motion.li 
+                        key={activity._id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 * activityIdx }}
+                      >
+                        <div className="relative pb-8">
+                          {activityIdx !== (recentActivity || []).length - 1 ? (
+                            <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" />
+                          ) : null}
+                          <div className="relative flex space-x-4">
+                            <div>
+                              <span className={`h-10 w-10 rounded-full flex items-center justify-center ring-8 ring-white shadow-sm ${getSeverityColor(activity.severity)}`}>
+                                <ActivityIcon className="h-5 w-5" />
+                              </span>
+                            </div>
+                            <div className="min-w-0 flex-1 pt-1.5">
+                              <div className="flex justify-between space-x-4">
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900">{activity.description}</p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {new Date(activity.timestamp).toLocaleString()}
+                                  </p>
+                                </div>
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSeverityColor(activity.severity)}`}>
+                                  {activity.severity}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.li>
+                    );
+                  })}
+                </ul>
+              </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Enhanced Usage Overview */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card className="h-full shadow-lg border-0">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-semibold text-gray-900">Usage Overview</h3>
+                  <ChartBarIcon className="h-5 w-5 text-gray-400" />
+                </div>
+                <div className="space-y-6">
+                  {/* Storage Usage */}
+                  <div>
+                    <div className="flex justify-between text-sm font-medium text-gray-700 mb-1">
+                      <span>Storage</span>
+                      <span>{formatBytes(tenantStats?.usage?.storageUsed || 0)} / {formatBytes(tenantStats?.usage?.storageLimit || 0)}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full" 
+                        style={{ width: `${((tenantStats?.usage?.storageUsed || 0) / (tenantStats?.usage?.storageLimit || 1)) * 100}%` }}
+                      ></div>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {formatPercentage(((tenantStats?.usage?.storageUsed || 0) / (tenantStats?.usage?.storageLimit || 1)) * 100)} used
+                    </div>
+                  </div>
+
+                  {/* Bandwidth Usage */}
+                  <div>
+                    <div className="flex justify-between text-sm font-medium text-gray-700 mb-1">
+                      <span>Bandwidth</span>
+                      <span>{formatBytes(tenantStats?.usage?.bandwidthUsed || 0)} / {formatBytes(tenantStats?.usage?.bandwidthLimit || 0)}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-green-600 h-2 rounded-full" 
+                        style={{ width: `${((tenantStats?.usage?.bandwidthUsed || 0) / (tenantStats?.usage?.bandwidthLimit || 1)) * 100}%` }}
+                      ></div>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {formatPercentage(((tenantStats?.usage?.bandwidthUsed || 0) / (tenantStats?.usage?.bandwidthLimit || 1)) * 100)} used
+                    </div>
+                  </div>
+
+                  {/* API Calls Usage */}
+                  <div>
+                    <div className="flex justify-between text-sm font-medium text-gray-700 mb-1">
+                      <span>API Calls</span>
+                      <span>{(tenantStats?.usage?.apiCallsUsed || 0).toLocaleString()} / {(tenantStats?.usage?.apiCallsLimit || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-purple-600 h-2 rounded-full" 
+                        style={{ width: `${((tenantStats?.usage?.apiCallsUsed || 0) / (tenantStats?.usage?.apiCallsLimit || 1)) * 100}%` }}
+                      ></div>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {formatPercentage(((tenantStats?.usage?.apiCallsUsed || 0) / (tenantStats?.usage?.apiCallsLimit || 1)) * 100)} used
+                    </div>
+                  </div>
+
+                  {/* Subscription Status */}
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="text-sm font-medium text-gray-700">Subscription</div>
+                        <div className="text-sm text-gray-500">{tenantStats?.subscription?.planName || 'No Plan'}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-gray-700">
+                          {tenantStats?.subscription?.status === 'active' ? (
+                            <span className="text-green-600">Active</span>
+                          ) : (
+                            <span className="text-red-600">{tenantStats?.subscription?.status || 'Inactive'}</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Expires: {tenantStats?.subscription?.expiresAt ? new Date(tenantStats?.subscription?.expiresAt).toLocaleDateString() : 'Unknown'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default TenantAdminDashboard;

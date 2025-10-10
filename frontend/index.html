@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Immigration Portal - Secure Immigration Management</title>
+    <meta name="description" content="Modern, secure immigration management platform for professionals and administrators" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    
+    <style>
+      /* Critical minimal styles for instant first paint */
+      :root { 
+        --brand: #dc2626; 
+        --bg: #fdf5f3; 
+        --muted: #6b7280; 
+      }
+      html, body { 
+        height: 100%; 
+        margin: 0;
+      }
+      body { 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: var(--bg); 
+        color: #111827;
+      }
+      @keyframes spin { 
+        to { transform: rotate(360deg); } 
+      }
+      .app-loading {
+        position: fixed;
+        inset: 0;
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+      .app-loading > div {
+        text-align: center;
+      }
+      .spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid #fecaca;
+        border-top-color: var(--brand);
+        border-radius: 50%;
+        animation: spin 0.9s linear infinite;
+        margin: 0 auto 12px;
+      }
+      .loading-text {
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 14px;
+      }
+      /* Hide loading when app mounts */
+      #root:not(:empty) ~ .app-loading {
+        display: none;
+      }
+    </style>
+    
+    <!-- REMOVED: Google Fonts - Now using self-hosted fonts via CSS -->
+    
+    <!-- Preload critical resources -->
+    <link rel="modulepreload" href="/src/main.tsx" />
+    
+    <!-- Preconnect to API (update with your production API URL) -->
+    <link rel="preconnect" href="http://localhost:5000" />
+    <link rel="dns-prefetch" href="http://localhost:5000" />
+    
+    <!-- Theme colors -->
+    <meta name="theme-color" content="#dc2626" />
+    <meta name="msapplication-TileColor" content="#dc2626" />
+    
+    <!-- Security headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    
+    <!-- Open Graph / Social Media (kept but minimal) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Immigration Portal" />
+    <meta property="og:description" content="Modern, secure immigration management platform" />
+  </head>
+  <body>
+    <noscript>
+      <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem;">
+        <div style="text-align: center; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px;">
+          <h1 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">JavaScript Required</h1>
+          <p style="color: #6b7280; margin-bottom: 1rem;">
+            This application requires JavaScript to be enabled for full functionality.
+          </p>
+          <p style="color: #9ca3af; font-size: 0.875rem;">
+            Please enable JavaScript in your browser settings and reload the page.
+          </p>
+        </div>
+      </div>
+    </noscript>
+    
+    <!-- React App Root -->
+    <div id="root"></div>
+    
+    <!-- Simplified loading fallback -->
+    <div class="app-loading">
+      <div>
+        <div class="spinner"></div>
+        <p class="loading-text">Loading Immigration Portal...</p>
+      </div>
+    </div>
+    
+    <!-- Vite entry point -->
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

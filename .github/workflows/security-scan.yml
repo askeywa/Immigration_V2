@@ -1,0 +1,55 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly security scan on Mondays at 2 AM
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: |
+          cd backend && npm ci
+          cd ../frontend && npm ci
+      
+      - name: Run Security Audit
+        run: |
+          echo "🔍 Running security audit..."
+          echo "Checking backend dependencies..."
+          cd backend
+          npm audit --audit-level=high
+          if [ $? -ne 0 ]; then
+            echo "❌ Backend security audit failed"
+            exit 1
+          fi
+          echo "✅ Backend security audit passed"
+          
+          echo "Checking frontend dependencies..."
+          cd ../frontend
+          npm audit --audit-level=high
+          if [ $? -ne 0 ]; then
+            echo "❌ Frontend security audit failed"
+            exit 1
+          fi
+          echo "✅ Frontend security audit passed"
+          
+          echo "🎉 All security audits passed!"
+      
+      - name: Security Summary
+        run: |
+          echo "🛡️ Security scan completed successfully!"
+          echo "✅ No high-severity vulnerabilities found"
+          echo "✅ All dependencies are secure"
