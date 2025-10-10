@@ -370,7 +370,7 @@ jobs:
             sudo apt install nginx -y
             
             # Create Nginx configuration
-            sudo tee /etc/nginx/sites-available/immigration-portal > /dev/null << NGINX_EOF
+            sudo tee /etc/nginx/sites-available/immigration-portal > /dev/null << 'EOF'
             server {
                 listen 80;
                 server_name ${MAIN_DOMAIN} www.${MAIN_DOMAIN};
@@ -406,7 +406,7 @@ jobs:
                     proxy_busy_buffers_size 8k;
                 }
             }
-            NGINX_EOF
+            EOF
             
             # Enable the site and remove default
             sudo ln -sf /etc/nginx/sites-available/immigration-portal /etc/nginx/sites-enabled/
