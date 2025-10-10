@@ -307,11 +307,6 @@ jobs:
                     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                     proxy_set_header X-Forwarded-Proto $scheme;
                     proxy_cache_bypass $http_upgrade;
-                    
-                    # Increased timeouts for long-running operations
-                    proxy_connect_timeout 60s;
-                    proxy_send_timeout 60s;
-                    proxy_read_timeout 60s;
                 }
             }
             NGINX_EOF
@@ -372,128 +367,45 @@ jobs:
             echo "=== DEPLOYING APPLICATION ==="
             cd /var/www/immigration-portal/backend
             
-            # Verify environment file exists and has content
-            if [ ! -f ".env" ]; then
-              echo "ERROR: .env file not found!"
-              exit 1
-            fi
-            
-            echo "Environment file exists. Checking content..."
-            echo "First 10 lines of .env:"
-            head -10 .env
-            
-            # Check if required environment variables are present
-            if ! grep -q "MONGODB_URI" .env; then
-              echo "ERROR: MONGODB_URI not found in .env file!"
-              exit 1
-            fi
-            
-            if ! grep -q "JWT_SECRET" .env; then
-              echo "ERROR: JWT_SECRET not found in .env file!"
-              exit 1
-            fi
-            
-            echo "Environment file validation passed!"
-            
-            # CRITICAL FIX: Kill any existing Node processes on port 5000
-            echo "=== CLEANING UP PORT 5000 ==="
-            sudo lsof -ti:5000 | xargs sudo kill -9 2>/dev/null || true
-            sleep 2
-            
             # Stop existing PM2 processes
             pm2 stop immigration-portal 2>/dev/null || true
             pm2 delete immigration-portal 2>/dev/null || true
             
-            # Wait for PM2 to fully clear
-            sleep 3
-            
-            # Create ecosystem.config.js for better PM2 management
-            cat > ecosystem.config.js << 'ECOEOF'
-            module.exports = {
-              apps: [
-                {
-                  name: 'immigration-portal',
-                  script: './dist/server.js',
-                  instances: 1,
-                  exec_mode: 'fork',
-                  env: {
-                    NODE_ENV: 'production'
-                  },
-                  error_file: './logs/error.log',
-                  out_file: './logs/out.log',
-                  log_file: './logs/combined.log',
-                  time: true,
-                  max_memory_restart: '1G',
-                  watch: false,
-                  ignore_watch: ['node_modules', 'dist/public'],
-                  max_restarts: 10,
-                  min_uptime: '10s',
-                  listen_timeout: 10000,
-                  kill_timeout: 5000
-                }
-              ]
-            };
-            ECOEOF
-            
-            echo "Starting application with ecosystem.config.js..."
-            pm2 start ecosystem.config.js --env production
-            
-            # Wait for PM2 to start the process
-            sleep 5
-            
-            echo "=== PM2 STATUS ==="
-            pm2 status
-            
-            # Verify the process started
-            if ! pm2 list | grep -q "immigration-portal"; then
-              echo "ERROR: PM2 failed to start the process!"
-              echo "PM2 Logs:"
-              pm2 logs immigration-portal --lines 100 --nostream
-              echo "Checking Node process:"
-              ps aux | grep node || true
-              exit 1
+            # Start application with PM2
+            if [ -f "ecosystem.config.js" ]; then
+              echo "Starting with ecosystem.config.js..."
+              pm2 start ecosystem.config.js --env production
+            else
+              echo "Starting with dist/server.js..."
+              pm2 start dist/server.js --name "immigration-portal" --env production
             fi
             
-            # Wait longer for application startup
-            echo "⏳ Waiting for application to initialize..."
-            sleep 10
+            # Wait for application to start
+            echo "Waiting for application to start..."
+            sleep 15
             
             echo "=== HEALTH CHECK ==="
+            # Health check with retry logic
             HEALTH_CHECK_ATTEMPTS=0
-            MAX_HEALTH_CHECK_ATTEMPTS=10
-            HEALTH_CHECK_INTERVAL=5
+            MAX_HEALTH_CHECK_ATTEMPTS=6
             
             while [ $HEALTH_CHECK_ATTEMPTS -lt $MAX_HEALTH_CHECK_ATTEMPTS ]; do
-              if curl -sf http://localhost:5000/api/health > /dev/null 2>&1; then
+              if curl -f http://localhost:5000/api/health > /dev/null 2>&1; then
                 echo "✅ Health check passed!"
-                curl -s http://localhost:5000/api/health | head -20
                 break
               else
                 HEALTH_CHECK_ATTEMPTS=$((HEALTH_CHECK_ATTEMPTS + 1))
-                if [ $HEALTH_CHECK_ATTEMPTS -lt $MAX_HEALTH_CHECK_ATTEMPTS ]; then
-                  echo "⏳ Health check attempt $HEALTH_CHECK_ATTEMPTS/$MAX_HEALTH_CHECK_ATTEMPTS failed, retrying in ${HEALTH_CHECK_INTERVAL}s..."
-                  sleep $HEALTH_CHECK_INTERVAL
-                fi
+                echo "⏳ Health check attempt $HEALTH_CHECK_ATTEMPTS/$MAX_HEALTH_CHECK_ATTEMPTS failed, retrying in 5 seconds..."
+                sleep 5
               fi
             done
             
             if [ $HEALTH_CHECK_ATTEMPTS -eq $MAX_HEALTH_CHECK_ATTEMPTS ]; then
               echo "❌ Health check failed after $MAX_HEALTH_CHECK_ATTEMPTS attempts!"
-              echo "=== DEBUGGING INFO ==="
               echo "PM2 Status:"
               pm2 status
-              echo ""
-              echo "PM2 Logs (last 50 lines):"
-              pm2 logs immigration-portal --lines 50 --nostream || true
-              echo ""
-              echo "Node processes:"
-              ps aux | grep "node\|npm" | grep -v grep || true
-              echo ""
-              echo "Port 5000 status:"
-              sudo lsof -i :5000 || echo "No process on port 5000"
-              echo ""
-              echo "Checking dist/server.js exists:"
-              ls -la dist/server.js || echo "dist/server.js not found"
+              echo "PM2 Logs:"
+              pm2 logs immigration-portal --lines 20
               exit 1
             fi
             
@@ -503,29 +415,22 @@ jobs:
             
             echo "=== DEPLOYMENT COMPLETED SUCCESSFULLY ==="
             pm2 status
-            
           ENDSSH
           
           # Final verification
           echo "=== FINAL VERIFICATION ==="
           ssh -i private_key.pem -o StrictHostKeyChecking=no ${USER}@${HOST} << 'ENDVERIFY'
-            sleep 5
+            sleep 10
             
-            echo "Checking application health..."
-            if curl -sf http://localhost:5000/api/health > /dev/null 2>&1; then
+            if curl -f http://localhost:5000/api/health > /dev/null 2>&1; then
               echo "✅ Final health check passed!"
-              curl -s http://localhost:5000/api/health
+              curl -s http://localhost:5000/api/health | jq '.' || echo "Health check response received"
             else
               echo "❌ Final health check failed"
-              echo ""
               echo "PM2 Status:"
               pm2 status
-              echo ""
               echo "Recent PM2 logs:"
-              pm2 logs immigration-portal --lines 30 --nostream
-              echo ""
-              echo "Nginx status:"
-              sudo systemctl status nginx --no-pager | head -20
+              pm2 logs immigration-portal --lines 20 --nostream
               exit 1
             fi
             

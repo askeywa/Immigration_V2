@@ -127,7 +127,7 @@ jobs:
           REDIS_ENABLED: ${{ secrets.REDIS_ENABLED }}
           REDIS_URL: ${{ secrets.REDIS_URL }}
           REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
-          NODE_ENV: ${{ secrets.NODE_ENV || 'production' }}
+          NODE_ENV: ${{ secrets.NODE_ENV || 'development' }}
           REDIS_CLUSTER_MODE: ${{ secrets.REDIS_CLUSTER_MODE || 'false' }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_RELEASE: ${{ secrets.SENTRY_RELEASE }}
@@ -139,11 +139,10 @@ jobs:
           APP_NAME: ${{ secrets.APP_NAME }}
           ALLOW_START_WITHOUT_DB: ${{ secrets.ALLOW_START_WITHOUT_DB }}
           ALLOWED_SUPER_ADMIN_DOMAINS: ${{ secrets.ALLOWED_SUPER_ADMIN_DOMAINS }}
-          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
         run: |
           cat > env.production << 'EOF'
-          NODE_ENV=${{ secrets.NODE_ENV || 'production' }}
-          PORT=5000
+            NODE_ENV=${{ secrets.NODE_ENV || 'development' }}
+            PORT=5000
           FRONTEND_URL=${{ secrets.FRONTEND_URL }}
           
           # Super Admin Configuration
@@ -151,11 +150,11 @@ jobs:
           ALLOWED_SUPER_ADMIN_DOMAINS=${{ secrets.ALLOWED_SUPER_ADMIN_DOMAINS }}
           
           # Database
-          MONGODB_URI=${{ secrets.MONGODB_URI }}
+            MONGODB_URI=${{ secrets.MONGODB_URI }}
           
           # JWT
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
           JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}
           
           # Domain Configuration
@@ -179,14 +178,14 @@ jobs:
           SENTRY_PROFILES_SAMPLE_RATE=${{ secrets.SENTRY_PROFILES_SAMPLE_RATE }}
           
           # New Relic
-          NEW_RELIC_LICENSE_KEY=${{ secrets.NEW_RELIC_LICENSE_KEY }}
-          NEW_RELIC_APP_NAME=${{ secrets.NEW_RELIC_APP_NAME }}
+            NEW_RELIC_LICENSE_KEY=${{ secrets.NEW_RELIC_LICENSE_KEY }}
+            NEW_RELIC_APP_NAME=${{ secrets.NEW_RELIC_APP_NAME }}
           NEW_RELIC_ENABLED=${{ secrets.NEW_RELIC_ENABLED }}
           
           # EC2 Configuration
-          EC2_PUBLIC_IP=${{ secrets.EC2_PUBLIC_IP }}
-          EC2_PRIVATE_IP=${{ secrets.EC2_PRIVATE_IP }}
-          EC2_PUBLIC_DNS=${{ secrets.EC2_PUBLIC_DNS }}
+            EC2_PUBLIC_IP=${{ secrets.EC2_PUBLIC_IP }}
+            EC2_PRIVATE_IP=${{ secrets.EC2_PRIVATE_IP }}
+            EC2_PUBLIC_DNS=${{ secrets.EC2_PUBLIC_DNS }}
           
           # API Configuration
           API_BASE_URL=${{ secrets.API_BASE_URL }}
@@ -194,9 +193,6 @@ jobs:
           # App Configuration
           APP_NAME=${{ secrets.APP_NAME }}
           ALLOW_START_WITHOUT_DB=${{ secrets.ALLOW_START_WITHOUT_DB }}
-          
-          # Encryption
-          ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
           EOF
       
       - name: Deploy to EC2
@@ -217,16 +213,15 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no ${USER}@${HOST} << 'ENDSSH'
             set -e  # Exit on any error
             
-            echo "=== CLEANING EXISTING DEPLOYMENT ==="
+            echo "Cleaning existing deployment..."
             sudo rm -rf /var/www/immigration-portal/*
             sudo rm -rf /var/www/immigration-portal/.git
             sudo rm -rf /var/www/immigration-portal/.[^.]*
             
-            echo "=== CLONING REPOSITORY ==="
+            echo "Updating repository..."
             cd /var/www/immigration-portal
             git clone https://github.com/askeywa/Immigration_V2.git .
             
-            echo "=== SETTING UP ENVIRONMENT ==="
             # Move env file to correct location (after git clone)
             mv /tmp/env.production /var/www/immigration-portal/backend/.env
             chmod 600 /var/www/immigration-portal/backend/.env
@@ -234,7 +229,6 @@ jobs:
             # Set proper ownership
             sudo chown -R ubuntu:ubuntu /var/www/immigration-portal
             
-            echo "=== INSTALLING DEPENDENCIES ==="
             echo "Installing backend dependencies..."
             cd /var/www/immigration-portal/backend
             npm install
@@ -243,21 +237,21 @@ jobs:
             cd /var/www/immigration-portal/frontend
             npm install
             
-            echo "=== BUILDING APPLICATION ==="
             echo "Building backend..."
             cd /var/www/immigration-portal/backend
+            # Clear build cache to ensure fresh build with latest code
             rm -rf dist/
             rm -rf node_modules/.cache/
             npm run build
             
             echo "Building frontend..."
             cd /var/www/immigration-portal/frontend
+            # Clear build cache to ensure fresh build with latest code
             rm -rf dist/
             rm -rf node_modules/.cache/
             rm -rf .vite/
             npm run build
             
-            echo "=== VERIFYING BUILDS ==="
             echo "Verifying frontend build..."
             if [ ! -d "dist" ]; then
               echo "ERROR: Frontend dist directory not found!"
@@ -268,20 +262,13 @@ jobs:
               exit 1
             fi
             echo "Frontend build verification passed!"
+            ls -lh dist/assets/ | head -20
             
-            echo "Verifying backend build..."
-            cd /var/www/immigration-portal/backend
-            if [ ! -f "dist/server.js" ]; then
-              echo "ERROR: Backend dist/server.js not found!"
-              exit 1
-            fi
-            echo "Backend build verification passed!"
-            
-            echo "=== SETTING UP NGINX ==="
+            echo "Setting up Nginx..."
             sudo apt update
             sudo apt install nginx -y
             
-            # Create Nginx configuration
+            # Create Nginx configuration for immigration-portal FIRST
             sudo tee /etc/nginx/sites-available/immigration-portal > /dev/null << 'NGINX_EOF'
             server {
                 listen 80;
@@ -307,11 +294,6 @@ jobs:
                     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                     proxy_set_header X-Forwarded-Proto $scheme;
                     proxy_cache_bypass $http_upgrade;
-                    
-                    # Increased timeouts for long-running operations
-                    proxy_connect_timeout 60s;
-                    proxy_send_timeout 60s;
-                    proxy_read_timeout 60s;
                 }
             }
             NGINX_EOF
@@ -321,216 +303,187 @@ jobs:
             sudo rm -f /etc/nginx/sites-enabled/default
             
             # Test Nginx configuration
-            if sudo nginx -t; then
-              echo "Nginx configuration test passed"
-            else
-              echo "ERROR: Nginx configuration test failed!"
-              exit 1
-            fi
+            sudo nginx -t
             
-            # Start and enable Nginx
+            # Start and enable Nginx (after configuration is created)
             sudo systemctl start nginx
             sudo systemctl enable nginx
             sudo systemctl reload nginx
             
-            echo "=== SETTING UP REDIS ==="
+            # Configure firewall for web traffic (safer approach)
+            sudo ufw allow 22
+            sudo ufw allow 80
+            sudo ufw allow 443
+            sudo ufw --force enable
+            
+            echo "SSL certificates should be set up manually to avoid rate limits."
+            echo "Run this command manually on the server to set up SSL:"
+            echo "sudo certbot --nginx -d ibuyscrap.ca -d www.ibuyscrap.ca"
+            
+            echo "Installing PM2 if needed..."
+            if ! command -v pm2 &> /dev/null; then
+              sudo npm install -g pm2
+            fi
+            
+            echo "Setting up Redis..."
             if ! command -v redis-server &> /dev/null; then
+              sudo apt update
               sudo apt install redis-server redis-tools -y
             fi
             
-            # Configure Redis with secure password
+            # Configure Redis with secure password from secrets
             sudo sed -i 's/^bind .*/bind 127.0.0.1/' /etc/redis/redis.conf
             sudo sed -i "s/^# *requirepass .*/requirepass ${REDIS_PASSWORD}/" /etc/redis/redis.conf
             sudo sed -i "s/^requirepass .*/requirepass ${REDIS_PASSWORD}/" /etc/redis/redis.conf
             sudo sed -i 's/^# *maxmemory .*/maxmemory 512mb/' /etc/redis/redis.conf
             sudo sed -i 's/^# *maxmemory-policy .*/maxmemory-policy allkeys-lru/' /etc/redis/redis.conf
             
-            # Ensure requirepass exists
+            # Ensure requirepass exists with secure password
             if ! sudo grep -q "^requirepass" /etc/redis/redis.conf; then
               echo "requirepass ${REDIS_PASSWORD}" | sudo tee -a /etc/redis/redis.conf > /dev/null
             fi
             
-            # Restart Redis
+            # Test Redis config before restarting
+            if sudo redis-server /etc/redis/redis.conf --test-memory 1 2>/dev/null; then
+              echo "Redis configuration is valid"
+            else
+              echo "Warning: Redis configuration test failed, but continuing..."
+            fi
+            
             sudo systemctl restart redis-server
             sudo systemctl enable redis-server
             
             if sudo systemctl is-active --quiet redis-server; then
               echo "Redis started successfully"
             else
-              echo "ERROR: Redis failed to start"
+              echo "Warning: Redis failed to start"
+            fi
+            
+            echo "Creating logs directory..."
+            mkdir -p /var/www/immigration-portal/backend/logs
+            
+            echo "Checking existing PM2 processes..."
+            # Check if immigration-portal is already running
+            if pm2 list | grep -q "immigration-portal.*online"; then
+              echo "Application is running, will perform restart to ensure environment variables are loaded..."
+              DEPLOYMENT_MODE="restart"
+            else
+              echo "Application not running, will perform fresh start..."
+              DEPLOYMENT_MODE="start"
+            fi
+            
+            echo "Verifying build artifacts..."
+            cd /var/www/immigration-portal/backend
+            
+            if [ ! -f "dist/server.js" ]; then
+              echo "ERROR: dist/server.js not found!"
+              ls -la dist/ || echo "dist directory not found"
               exit 1
             fi
             
-            echo "=== SETTING UP PM2 ==="
-            if ! command -v pm2 &> /dev/null; then
-              sudo npm install -g pm2
-            fi
-            
-            # Create logs directory
-            mkdir -p /var/www/immigration-portal/backend/logs
-            
-            echo "=== DEPLOYING APPLICATION ==="
-            cd /var/www/immigration-portal/backend
-            
-            # Verify environment file exists and has content
             if [ ! -f ".env" ]; then
               echo "ERROR: .env file not found!"
               exit 1
             fi
             
-            echo "Environment file exists. Checking content..."
-            echo "First 10 lines of .env:"
-            head -10 .env
-            
-            # Check if required environment variables are present
-            if ! grep -q "MONGODB_URI" .env; then
-              echo "ERROR: MONGODB_URI not found in .env file!"
-              exit 1
+            echo "Deploying application with PM2..."
+            if [ -f "ecosystem.config.js" ]; then
+              if [ "$DEPLOYMENT_MODE" = "restart" ]; then
+                echo "Performing restart with ecosystem.config.js to ensure environment variables are loaded..."
+                pm2 restart ecosystem.config.js --env production
+              else
+                echo "Starting fresh with ecosystem.config.js..."
+                pm2 start ecosystem.config.js --env production
+              fi
+            else
+              if [ "$DEPLOYMENT_MODE" = "restart" ]; then
+                echo "Performing restart with dist/server.js to ensure environment variables are loaded..."
+                pm2 restart dist/server.js --name "immigration-portal" --env production
+              else
+                echo "Starting fresh with dist/server.js..."
+                pm2 start dist/server.js --name "immigration-portal" --env production
+              fi
             fi
             
-            if ! grep -q "JWT_SECRET" .env; then
-              echo "ERROR: JWT_SECRET not found in .env file!"
-              exit 1
-            fi
-            
-            echo "Environment file validation passed!"
-            
-            # CRITICAL FIX: Kill any existing Node processes on port 5000
-            echo "=== CLEANING UP PORT 5000 ==="
-            sudo lsof -ti:5000 | xargs sudo kill -9 2>/dev/null || true
-            sleep 2
-            
-            # Stop existing PM2 processes
-            pm2 stop immigration-portal 2>/dev/null || true
-            pm2 delete immigration-portal 2>/dev/null || true
-            
-            # Wait for PM2 to fully clear
-            sleep 3
-            
-            # Create ecosystem.config.js for better PM2 management
-            cat > ecosystem.config.js << 'ECOEOF'
-            module.exports = {
-              apps: [
-                {
-                  name: 'immigration-portal',
-                  script: './dist/server.js',
-                  instances: 1,
-                  exec_mode: 'fork',
-                  env: {
-                    NODE_ENV: 'production'
-                  },
-                  error_file: './logs/error.log',
-                  out_file: './logs/out.log',
-                  log_file: './logs/combined.log',
-                  time: true,
-                  max_memory_restart: '1G',
-                  watch: false,
-                  ignore_watch: ['node_modules', 'dist/public'],
-                  max_restarts: 10,
-                  min_uptime: '10s',
-                  listen_timeout: 10000,
-                  kill_timeout: 5000
-                }
-              ]
-            };
-            ECOEOF
-            
-            echo "Starting application with ecosystem.config.js..."
-            pm2 start ecosystem.config.js --env production
-            
-            # Wait for PM2 to start the process
-            sleep 5
-            
-            echo "=== PM2 STATUS ==="
-            pm2 status
-            
-            # Verify the process started
-            if ! pm2 list | grep -q "immigration-portal"; then
-              echo "ERROR: PM2 failed to start the process!"
-              echo "PM2 Logs:"
-              pm2 logs immigration-portal --lines 100 --nostream
-              echo "Checking Node process:"
-              ps aux | grep node || true
-              exit 1
-            fi
-            
-            # Wait longer for application startup
-            echo "⏳ Waiting for application to initialize..."
+            # Wait for application to start and verify health
+            echo "Waiting for application to start..."
             sleep 10
             
-            echo "=== HEALTH CHECK ==="
+            # Fix authentication issues
+            echo "🔧 Fixing authentication issues..."
+            if [ -f "fix-production-auth-universal.js" ]; then
+              echo "Running authentication fix script..."
+              node fix-production-auth-universal.js
+              if [ $? -eq 0 ]; then
+                echo "✅ Authentication fix completed successfully!"
+              else
+                echo "⚠️ Authentication fix failed, but continuing..."
+              fi
+            else
+              echo "⚠️ Authentication fix script not found, skipping..."
+            fi
+            
+            # Health check with retry logic
+            echo "Performing health check..."
             HEALTH_CHECK_ATTEMPTS=0
-            MAX_HEALTH_CHECK_ATTEMPTS=10
-            HEALTH_CHECK_INTERVAL=5
+            MAX_HEALTH_CHECK_ATTEMPTS=6
             
             while [ $HEALTH_CHECK_ATTEMPTS -lt $MAX_HEALTH_CHECK_ATTEMPTS ]; do
-              if curl -sf http://localhost:5000/api/health > /dev/null 2>&1; then
+              if curl -f http://localhost:5000/api/health > /dev/null 2>&1; then
                 echo "✅ Health check passed!"
-                curl -s http://localhost:5000/api/health | head -20
                 break
               else
                 HEALTH_CHECK_ATTEMPTS=$((HEALTH_CHECK_ATTEMPTS + 1))
-                if [ $HEALTH_CHECK_ATTEMPTS -lt $MAX_HEALTH_CHECK_ATTEMPTS ]; then
-                  echo "⏳ Health check attempt $HEALTH_CHECK_ATTEMPTS/$MAX_HEALTH_CHECK_ATTEMPTS failed, retrying in ${HEALTH_CHECK_INTERVAL}s..."
-                  sleep $HEALTH_CHECK_INTERVAL
-                fi
+                echo "⏳ Health check attempt $HEALTH_CHECK_ATTEMPTS/$MAX_HEALTH_CHECK_ATTEMPTS failed, retrying in 5 seconds..."
+                sleep 5
               fi
             done
             
             if [ $HEALTH_CHECK_ATTEMPTS -eq $MAX_HEALTH_CHECK_ATTEMPTS ]; then
               echo "❌ Health check failed after $MAX_HEALTH_CHECK_ATTEMPTS attempts!"
-              echo "=== DEBUGGING INFO ==="
-              echo "PM2 Status:"
+              echo "Checking PM2 status and logs..."
               pm2 status
-              echo ""
-              echo "PM2 Logs (last 50 lines):"
-              pm2 logs immigration-portal --lines 50 --nostream || true
-              echo ""
-              echo "Node processes:"
-              ps aux | grep "node\|npm" | grep -v grep || true
-              echo ""
-              echo "Port 5000 status:"
-              sudo lsof -i :5000 || echo "No process on port 5000"
-              echo ""
-              echo "Checking dist/server.js exists:"
-              ls -la dist/server.js || echo "dist/server.js not found"
+              pm2 logs immigration-portal --lines 20
               exit 1
             fi
             
-            # Save PM2 configuration
+            echo "PM2 Status:"
+            pm2 status
+            
+            # Verify PM2 started successfully
+            if pm2 list | grep -q "immigration-portal.*online"; then
+              echo "Application started successfully!"
+            else
+              echo "ERROR: Application failed to start"
+              echo "PM2 Logs:"
+              pm2 logs --lines 50 --nostream
+              exit 1
+            fi
+            
             pm2 save
             sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u ubuntu --hp /home/ubuntu
             
-            echo "=== DEPLOYMENT COMPLETED SUCCESSFULLY ==="
-            pm2 status
-            
+            echo "Deployment completed successfully!"
           ENDSSH
           
           # Final verification
-          echo "=== FINAL VERIFICATION ==="
+          echo "Final health check..."
           ssh -i private_key.pem -o StrictHostKeyChecking=no ${USER}@${HOST} << 'ENDVERIFY'
-            sleep 5
+            sleep 10
             
-            echo "Checking application health..."
-            if curl -sf http://localhost:5000/api/health > /dev/null 2>&1; then
-              echo "✅ Final health check passed!"
-              curl -s http://localhost:5000/api/health
+            # Check if health endpoint responds
+            if curl -f http://localhost:5000/api/health > /dev/null 2>&1; then
+              echo "Application health check passed!"
+              curl -s http://localhost:5000/api/health | jq '.' || echo "Health check response received"
             else
-              echo "❌ Final health check failed"
-              echo ""
-              echo "PM2 Status:"
-              pm2 status
-              echo ""
+              echo "Application health check failed"
               echo "Recent PM2 logs:"
-              pm2 logs immigration-portal --lines 30 --nostream
-              echo ""
-              echo "Nginx status:"
-              sudo systemctl status nginx --no-pager | head -20
+              pm2 logs immigration-portal --lines 20 --nostream
               exit 1
             fi
             
-            echo "🎉 Deployment verification complete!"
+            echo "Deployment verification complete!"
           ENDVERIFY
           
           rm -f private_key.pem
-          echo "🚀 Deployment finished successfully!"
+          echo "Deployment finished successfully!"
