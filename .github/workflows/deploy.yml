@@ -18,8 +18,8 @@ jobs:
           node-version: 'lts/*'
           cache: 'npm'
           cache-dependency-path: |
-            backend/package-lock.json
-            frontend/package-lock.json
+            backend/package.json
+            frontend/package.json
       
       - name: Install System Dependencies for Native Modules
         run: |
@@ -32,7 +32,7 @@ jobs:
           path: |
             backend/dist
             backend/node_modules/.cache
-          key: ${{ runner.os }}-backend-${{ hashFiles('backend/package-lock.json', 'backend/src/**/*') }}
+          key: ${{ runner.os }}-backend-${{ hashFiles('backend/package.json', 'backend/src/**/*') }}
           restore-keys: |
             ${{ runner.os }}-backend-
             ${{ runner.os }}-
@@ -43,7 +43,7 @@ jobs:
           path: |
             frontend/dist
             frontend/node_modules/.cache
-          key: ${{ runner.os }}-frontend-${{ hashFiles('frontend/package-lock.json', 'frontend/src/**/*') }}
+          key: ${{ runner.os }}-frontend-${{ hashFiles('frontend/package.json', 'frontend/src/**/*') }}
           restore-keys: |
             ${{ runner.os }}-frontend-
             ${{ runner.os }}-
