@@ -213,15 +213,6 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no ${USER}@${HOST} << 'ENDSSH'
             set -e  # Exit on any error
             
-            echo "Creating directory structure..."
-            sudo mkdir -p /var/www/immigration-portal/backend
-            sudo mkdir -p /var/www/immigration-portal/frontend
-            sudo chown -R ubuntu:ubuntu /var/www/immigration-portal
-            
-            # Move env file to correct location
-            mv /tmp/env.production /var/www/immigration-portal/backend/.env
-            chmod 600 /var/www/immigration-portal/backend/.env
-            
             echo "Updating repository..."
             if [ ! -d "/var/www/immigration-portal/.git" ]; then
               cd /var/www/immigration-portal
@@ -233,6 +224,13 @@ jobs:
               git reset --hard origin/master
               git clean -fd
             fi
+            
+            # Move env file to correct location (after git clone)
+            mv /tmp/env.production /var/www/immigration-portal/backend/.env
+            chmod 600 /var/www/immigration-portal/backend/.env
+            
+            # Set proper ownership
+            sudo chown -R ubuntu:ubuntu /var/www/immigration-portal
             
             echo "Installing backend dependencies..."
             cd /var/www/immigration-portal/backend
