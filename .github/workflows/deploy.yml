@@ -370,7 +370,7 @@ jobs:
             sudo apt install nginx -y
             
             # Create Nginx configuration
-            sudo tee /etc/nginx/sites-available/immigration-portal > /dev/null << 'EOF'
+            sudo tee /etc/nginx/sites-available/immigration-portal > /dev/null << EOF
             server {
                 listen 80;
                 server_name ${MAIN_DOMAIN} www.${MAIN_DOMAIN};
