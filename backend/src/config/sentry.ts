@@ -1,6 +1,13 @@
 // backend/src/config/sentry.ts
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
+import { 
+  expressIntegration,
+  mongoIntegration,
+  mysqlIntegration,
+  postgresIntegration,
+  prismaIntegration
+} from '@sentry/integrations';
 import { config } from './config';
 import { log } from '../utils/logger';
 
@@ -36,11 +43,11 @@ export class SentryService {
       profilesSampleRate: parseFloat(process.env.SENTRY_PROFILES_SAMPLE_RATE || '0.1'),
       integrations: [
         Sentry.httpIntegration(),
-        Sentry.expressIntegration(),
-        Sentry.mongoIntegration(),
-        Sentry.mysqlIntegration(),
-        Sentry.postgresIntegration(),
-        Sentry.prismaIntegration(),
+        expressIntegration(),
+        mongoIntegration(),
+        mysqlIntegration(),
+        postgresIntegration(),
+        prismaIntegration(),
         nodeProfilingIntegration(),
       ],
       tags: {
@@ -218,7 +225,7 @@ export class SentryService {
     return Sentry.startSpan({
       name,
       op: operation,
-    }, callback);
+    }, (span) => callback(span!));
   }
 
   /**
