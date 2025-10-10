@@ -217,6 +217,24 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no ${USER}@${HOST} << 'ENDSSH'
             set -e  # Exit on any error
             
+            echo "=== INSTALLING SYSTEM DEPENDENCIES ==="
+            # Install build tools required for native npm modules
+            sudo apt-get update
+            sudo apt-get install -y \
+              build-essential \
+              python3 \
+              python3-pip \
+              make \
+              g++ \
+              gcc \
+              libcairo2-dev \
+              libpango1.0-dev \
+              libjpeg-dev \
+              libgif-dev \
+              librsvg2-dev \
+              chromium-browser \
+              chromium-chromedriver
+            
             echo "=== CLEANING EXISTING DEPLOYMENT ==="
             sudo rm -rf /var/www/immigration-portal/*
             sudo rm -rf /var/www/immigration-portal/.git
@@ -237,11 +255,27 @@ jobs:
             echo "=== INSTALLING DEPENDENCIES ==="
             echo "Installing backend dependencies..."
             cd /var/www/immigration-portal/backend
-            npm install
+            
+            # Clean npm cache to avoid corruption issues
+            npm cache clean --force
+            
+            # Remove any existing node_modules and package-lock
+            rm -rf node_modules package-lock.json
+            
+            # Install with legacy peer deps to avoid conflicts
+            npm install --legacy-peer-deps
             
             echo "Installing frontend dependencies..."
             cd /var/www/immigration-portal/frontend
-            npm install
+            
+            # Clean npm cache
+            npm cache clean --force
+            
+            # Remove any existing node_modules and package-lock
+            rm -rf node_modules package-lock.json
+            
+            # Install with legacy peer deps
+            npm install --legacy-peer-deps
             
             echo "=== BUILDING APPLICATION ==="
             echo "Building backend..."
@@ -407,34 +441,7 @@ jobs:
             # Wait for PM2 to fully clear
             sleep 3
             
-            # Create ecosystem.config.js for better PM2 management
-            cat > ecosystem.config.js << 'ECOEOF'
-            module.exports = {
-              apps: [
-                {
-                  name: 'immigration-portal',
-                  script: './dist/server.js',
-                  instances: 1,
-                  exec_mode: 'fork',
-                  env: {
-                    NODE_ENV: 'production'
-                  },
-                  error_file: './logs/error.log',
-                  out_file: './logs/out.log',
-                  log_file: './logs/combined.log',
-                  time: true,
-                  max_memory_restart: '1G',
-                  watch: false,
-                  ignore_watch: ['node_modules', 'dist/public'],
-                  max_restarts: 10,
-                  min_uptime: '10s',
-                  listen_timeout: 10000,
-                  kill_timeout: 5000
-                }
-              ]
-            };
-            ECOEOF
-            
+            # Use the ecosystem.config.js from the repository
             echo "Starting application with ecosystem.config.js..."
             pm2 start ecosystem.config.js --env production
             
