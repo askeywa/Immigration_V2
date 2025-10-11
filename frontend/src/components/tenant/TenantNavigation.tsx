@@ -28,6 +28,7 @@ const TenantNavigation: React.FC<TenantNavigationProps> = ({ variant = 'default'
     const items = [];
 
     if (isSuperAdmin) {
+      console.log('Adding Super Admin navigation items including Markdown Editor');
       items.push(
         { path: '/super-admin', label: 'Dashboard', icon: '🏠' },
         { path: '/super-admin/tenants', label: 'Tenants', icon: '🏢' },
@@ -57,6 +58,8 @@ const TenantNavigation: React.FC<TenantNavigationProps> = ({ variant = 'default'
   };
 
   const navigationItems = getNavigationItems();
+  console.log('Navigation items for Super Admin:', navigationItems);
+  console.log('isSuperAdmin:', isSuperAdmin);
 
   if (variant === 'sidebar') {
     return (
