@@ -220,6 +220,13 @@ export const TenantRouter: React.FC = () => {
                   </Suspense>
                 </TenantAccessGuard>
               } />
+              <Route path="/super-admin/md-editor" element={
+                <TenantAccessGuard requiredRole="super_admin">
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <SuperAdminRoutes.MarkdownEditor />
+                  </Suspense>
+                </TenantAccessGuard>
+              } />
             </>
           )}
           

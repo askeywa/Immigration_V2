@@ -9,6 +9,7 @@ export const SuperAdminRoutes = {
   Reports: lazy(() => import('@/pages/super-admin/SuperAdminReports')),
   Analytics: lazy(() => import('@/pages/super-admin/SuperAdminAnalytics')),
   Performance: lazy(() => import('@/pages/super-admin/PerformanceMonitoring')),
+  MarkdownEditor: lazy(() => import('@/pages/super-admin/MarkdownEditor')),
 };
 
 // Tenant Admin route group
