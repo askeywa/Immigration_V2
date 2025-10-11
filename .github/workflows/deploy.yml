@@ -268,8 +268,18 @@ jobs:
           scp -i private_key.pem -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null env.production ${USER}@${HOST}:/tmp/env.production
           
           # Deploy application
-          ssh -i private_key.pem -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null ${USER}@${HOST} << 'ENDSSH'
+          ssh -i private_key.pem -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null ${USER}@${HOST} << ENDSSH
             set -e  # Exit on any error
+            
+            # Set environment variables in the SSH session
+            export MAIN_DOMAIN="${{ secrets.MAIN_DOMAIN }}"
+            export SUPER_ADMIN_DOMAIN="${{ secrets.SUPER_ADMIN_DOMAIN }}"
+            export ALLOWED_SUPER_ADMIN_DOMAINS="${{ secrets.ALLOWED_SUPER_ADMIN_DOMAINS }}"
+            export ALLOWED_ORIGINS="${{ secrets.ALLOWED_ORIGINS }}"
+            
+            echo "=== ENVIRONMENT VARIABLES SET ==="
+            echo "MAIN_DOMAIN: \$MAIN_DOMAIN"
+            echo "SUPER_ADMIN_DOMAIN: \$SUPER_ADMIN_DOMAIN"
             
             echo "=== INSTALLING SYSTEM DEPENDENCIES ==="
             # Install build tools required for native npm modules
@@ -369,11 +379,8 @@ jobs:
             sudo apt update
             sudo apt install nginx -y
             
-            # Set environment variables for Nginx configuration
-            export MAIN_DOMAIN="${{ secrets.MAIN_DOMAIN }}"
-            export SUPER_ADMIN_DOMAIN="${{ secrets.SUPER_ADMIN_DOMAIN }}"
-            export ALLOWED_SUPER_ADMIN_DOMAINS="${{ secrets.ALLOWED_SUPER_ADMIN_DOMAINS }}"
-            export ALLOWED_ORIGINS="${{ secrets.ALLOWED_ORIGINS }}"
+            echo "=== CREATING NGINX CONFIGURATION ==="
+            echo "Using MAIN_DOMAIN: \$MAIN_DOMAIN"
             
             # Create Nginx configuration template with proper variable substitution
             sudo tee /etc/nginx/sites-available/immigration-portal > /dev/null << 'NGINX_CONFIG'
@@ -424,8 +431,15 @@ jobs:
             NGINX_CONFIG
             
             # Use envsubst to replace variables in the configuration
+            echo "=== SUBSTITUTING ENVIRONMENT VARIABLES ==="
+            echo "Before substitution - checking if MAIN_DOMAIN is available: \$MAIN_DOMAIN"
+            
             sudo envsubst '$MAIN_DOMAIN' < /etc/nginx/sites-available/immigration-portal > /tmp/nginx-config
             sudo mv /tmp/nginx-config /etc/nginx/sites-available/immigration-portal
+            
+            echo "=== VERIFYING NGINX CONFIGURATION ==="
+            echo "Configuration file contents (first 10 lines):"
+            head -10 /etc/nginx/sites-available/immigration-portal
             
             # Enable the site and remove default
             sudo ln -sf /etc/nginx/sites-available/immigration-portal /etc/nginx/sites-enabled/
