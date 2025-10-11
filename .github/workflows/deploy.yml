@@ -380,8 +380,8 @@ jobs:
             sudo apt install nginx -y
             
             
-            # Create Nginx configuration for immigration-portal using echo commands
-            sudo tee /etc/nginx/sites-available/immigration-portal > /dev/null << 'EOF'
+            # Create Nginx configuration for immigration-portal
+            sudo tee /etc/nginx/sites-available/immigration-portal > /dev/null << 'NGINX_EOF'
 server {
     listen 80;
     server_name ibuyscrap.ca www.ibuyscrap.ca;
@@ -408,7 +408,7 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 }
-EOF
+NGINX_EOF
             
             echo "=== VERIFYING NGINX CONFIGURATION ==="
             echo "Configuration file contents (first 10 lines):"
