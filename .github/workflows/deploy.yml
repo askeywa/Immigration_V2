@@ -407,9 +407,28 @@ jobs:
             
             # Start and enable Nginx
             echo "=== STARTING NGINX ==="
+            echo "Starting nginx service..."
             sudo systemctl start nginx
+            if [ $? -eq 0 ]; then
+              echo "Nginx started successfully"
+            else
+              echo "ERROR: Failed to start Nginx"
+              sudo systemctl status nginx
+              exit 1
+            fi
+            
+            echo "Enabling nginx service..."
             sudo systemctl enable nginx
+            
+            echo "Reloading nginx configuration..."
             sudo systemctl reload nginx
+            if [ $? -eq 0 ]; then
+              echo "Nginx reloaded successfully"
+            else
+              echo "ERROR: Failed to reload Nginx"
+              sudo systemctl status nginx
+              exit 1
+            fi
             
             echo "=== SETTING UP REDIS ==="
             if ! command -v redis-server &> /dev/null; then
