@@ -380,35 +380,35 @@ jobs:
             sudo apt install nginx -y
             
             
-            # Create Nginx configuration for immigration-portal
-            sudo tee /etc/nginx/sites-available/immigration-portal > /dev/null <<EOF
-            server {
-                listen 80;
-                server_name ibuyscrap.ca www.ibuyscrap.ca;
-                
-                # Serve frontend static files
-                root /var/www/immigration-portal/frontend/dist;
-                index index.html;
-                
-                # Handle frontend routing (SPA)
-                location / {
-                    try_files \$uri \$uri/ /index.html;
-                }
-                
-                # Proxy API requests to backend
-                location /api/ {
-                    proxy_pass http://localhost:5000;
-                    proxy_http_version 1.1;
-                    proxy_set_header Upgrade \$http_upgrade;
-                    proxy_set_header Connection 'upgrade';
-                    proxy_set_header Host \$host;
-                    proxy_set_header X-Real-IP \$remote_addr;
-                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto \$scheme;
-                    proxy_cache_bypass \$http_upgrade;
-                }
-            }
-            EOF
+            # Create Nginx configuration for immigration-portal using echo commands
+            sudo tee /etc/nginx/sites-available/immigration-portal > /dev/null << 'EOF'
+server {
+    listen 80;
+    server_name ibuyscrap.ca www.ibuyscrap.ca;
+    
+    # Serve frontend static files
+    root /var/www/immigration-portal/frontend/dist;
+    index index.html;
+    
+    # Handle frontend routing (SPA)
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+    
+    # Proxy API requests to backend
+    location /api/ {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+EOF
             
             echo "=== VERIFYING NGINX CONFIGURATION ==="
             echo "Configuration file contents (first 10 lines):"
