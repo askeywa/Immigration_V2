@@ -272,6 +272,9 @@ jobs:
             set -e  # Exit on any error
             set -x  # Enable debug mode to show commands
             
+            # Disable clear_console to prevent it from hiding error messages
+            alias clear_console='echo "clear_console disabled to preserve error messages"'
+            
             # Set environment variables in the SSH session
             export MAIN_DOMAIN="${{ secrets.MAIN_DOMAIN }}"
             export SUPER_ADMIN_DOMAIN="${{ secrets.SUPER_ADMIN_DOMAIN }}"
