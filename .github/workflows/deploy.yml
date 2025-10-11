@@ -398,8 +398,14 @@ jobs:
             # Test Nginx configuration
             echo "=== TESTING NGINX CONFIGURATION ==="
             echo "Running: sudo nginx -t"
-            sudo nginx -t 2>&1
+            
+            # Capture both stdout and stderr, and don't let clear_console interfere
+            nginx_test_output=$(sudo nginx -t 2>&1)
             nginx_test_result=$?
+            
+            echo "=== NGINX TEST OUTPUT ==="
+            echo "$nginx_test_output"
+            echo "=== END NGINX TEST OUTPUT ==="
             echo "Nginx test exit code: $nginx_test_result"
             
             if [ $nginx_test_result -eq 0 ]; then
@@ -410,6 +416,10 @@ jobs:
               echo "Configuration file contents:"
               cat /etc/nginx/sites-available/immigration-portal
               echo "=== END CONFIGURATION DEBUG ==="
+              echo "=== NGINX ERROR ANALYSIS ==="
+              echo "The nginx -t command failed with exit code: $nginx_test_result"
+              echo "Error output was: $nginx_test_output"
+              echo "=== END ERROR ANALYSIS ==="
               exit 1
             fi
             
