@@ -419,14 +419,19 @@ jobs:
             
             # Test Nginx configuration
             echo "=== TESTING NGINX CONFIGURATION ==="
-            sudo nginx -t
-            if [ $? -eq 0 ]; then
+            echo "Running: sudo nginx -t"
+            sudo nginx -t 2>&1
+            nginx_test_result=$?
+            echo "Nginx test exit code: $nginx_test_result"
+            
+            if [ $nginx_test_result -eq 0 ]; then
               echo "Nginx configuration test passed"
             else
               echo "ERROR: Nginx configuration test failed!"
               echo "=== NGINX CONFIGURATION DEBUG ==="
               echo "Configuration file contents:"
               cat /etc/nginx/sites-available/immigration-portal
+              echo "=== END CONFIGURATION DEBUG ==="
               exit 1
             fi
             
