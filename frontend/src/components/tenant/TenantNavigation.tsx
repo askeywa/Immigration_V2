@@ -35,6 +35,7 @@ const TenantNavigation: React.FC<TenantNavigationProps> = ({ variant = 'default'
         { path: '/super-admin/users', label: 'Users', icon: '👥' },
         { path: '/super-admin/reports', label: 'Reports', icon: '📊' },
         { path: '/super-admin/analytics', label: 'Analytics', icon: '📈' },
+        { path: '/super-admin/performance', label: 'Performance', icon: '⚡' },
         { path: '/super-admin/md-editor', label: 'Markdown Editor', icon: '📝' }
       );
     } else if (isTenantAdmin) {
