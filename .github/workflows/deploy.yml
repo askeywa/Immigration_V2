@@ -381,33 +381,11 @@ jobs:
             sudo apt install nginx -y
             
             
-            # Create Nginx configuration using echo commands (no heredoc)
-            echo 'server {' | sudo tee /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '    listen 80;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '    server_name ibuyscrap.ca www.ibuyscrap.ca;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '    # Serve frontend static files' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '    root /var/www/immigration-portal/frontend/dist;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '    index index.html;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '    # Handle frontend routing (SPA)' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '    location / {' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        try_files \$uri \$uri/ /index.html;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '    }' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '    # Proxy API requests to backend' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '    location /api/ {' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        proxy_pass http://localhost:5000;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        proxy_http_version 1.1;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        proxy_set_header Upgrade \$http_upgrade;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        proxy_set_header Connection "upgrade";' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        proxy_set_header Host \$host;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        proxy_set_header X-Real-IP \$remote_addr;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        proxy_set_header X-Forwarded-Proto \$scheme;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        proxy_cache_bypass \$http_upgrade;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '    }' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '}' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
+            # Create Nginx configuration using base64 to avoid all shell parsing issues
+            echo "=== CREATING NGINX CONFIGURATION (BULLETPROOF METHOD) ==="
+            echo 'c2VydmVyIHsKICAgIGxpc3RlbiA4MDsKICAgIHNlcnZlcl9uYW1lIGlidXlzY3JhcC5jYSB3d3cuaWJ1eXNjcmFwLmNhOwogICAgCiAgICAjIFNlcnZlIGZyb250ZW5kIHN0YXRpYyBmaWxlcwogICAgcm9vdCAvdmFyL3d3dy9pbW1pZ3JhdGlvbi1wb3J0YWwvZnJvbnRlbmQvZGlzdDsKICAgIGluZGV4IGluZGV4Lmh0bWw7CiAgICAKICAgICMgSGFuZGxlIGZyb250ZW5kIHJvdXRpbmcgKFNQQSkKICAgIGxvY2F0aW9uIC8gewogICAgICAgIHRyeV9maWxlcyAkdXJpICR1cmkvIC9pbmRleC5odG1sOwogICAgfQogICAgCiAgICAjIFByb3h5IEFQSSByZXF1ZXN0cyB0byBiYWNrZW5kCiAgICBsb2NhdGlvbiAvYXBpLyB7CiAgICAgICAgcHJveHlfcGFzcyBodHRwOi8vbG9jYWxob3N0OjUwMDA7CiAgICAgICAgcHJveHlfaHR0cF92ZXJzaW9uIDEuMTsKICAgICAgICBwcm94eV9zZXRfaGVhZGVyIFVwZ3JhZGUgJGh0dHBfdXBncmFkZTsKICAgICAgICBwcm94eV9zZXRfaGVhZGVyIENvbm5lY3Rpb24gInVwZ3JhZGUiOwogICAgICAgIHByb3h5X3NldF9oZWFkZXIgSG9zdCAkaG9zdDsKICAgICAgICBwcm94eV9zZXRfaGVhZGVyIFgtUmVhbC1JUCAkcmVtb3RlX2FkZHI7CiAgICAgICAgcHJveHlfc2V0X2hlYWRlciBYLUZvcndhcmRlZC1Gb3IgJHByb3h5X2FkZF94X2ZvcndhcmRlZF9mb3I7CiAgICAgICAgcHJveHlfc2V0X2hlYWRlciBYLUZvcndhcmRlZC1Qcm90byAkc2NoZW1lOwogICAgICAgIHByb3h5X2NhY2hlX2J5cGFzcyAkaHR0cF91cGdyYWRlOwogICAgfQp9' | base64 -d | sudo tee /etc/nginx/sites-available/immigration-portal > /dev/null
+            
+            echo "Configuration created successfully!"
             
             echo "=== VERIFYING NGINX CONFIGURATION ==="
             echo "Configuration file contents (first 10 lines):"
