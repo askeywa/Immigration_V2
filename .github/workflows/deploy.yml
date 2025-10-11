@@ -391,20 +391,20 @@ jobs:
             echo '' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
             echo '    # Handle frontend routing (SPA)' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
             echo '    location / {' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        try_files $uri $uri/ /index.html;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
+            echo '        try_files \$uri \$uri/ /index.html;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
             echo '    }' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
             echo '' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
             echo '    # Proxy API requests to backend' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
             echo '    location /api/ {' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
             echo '        proxy_pass http://localhost:5000;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
             echo '        proxy_http_version 1.1;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        proxy_set_header Upgrade $http_upgrade;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
+            echo '        proxy_set_header Upgrade \$http_upgrade;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
             echo '        proxy_set_header Connection "upgrade";' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        proxy_set_header Host $host;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        proxy_set_header X-Real-IP $remote_addr;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        proxy_set_header X-Forwarded-Proto $scheme;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
-            echo '        proxy_cache_bypass $http_upgrade;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
+            echo '        proxy_set_header Host \$host;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
+            echo '        proxy_set_header X-Real-IP \$remote_addr;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
+            echo '        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
+            echo '        proxy_set_header X-Forwarded-Proto \$scheme;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
+            echo '        proxy_cache_bypass \$http_upgrade;' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
             echo '    }' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
             echo '}' | sudo tee -a /etc/nginx/sites-available/immigration-portal > /dev/null
             
