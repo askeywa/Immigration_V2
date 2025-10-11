@@ -270,6 +270,7 @@ jobs:
           # Deploy application
           ssh -i private_key.pem -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null ${USER}@${HOST} << ENDSSH
             set -e  # Exit on any error
+            set -x  # Enable debug mode to show commands
             
             # Set environment variables in the SSH session
             export MAIN_DOMAIN="${{ secrets.MAIN_DOMAIN }}"
@@ -417,14 +418,20 @@ jobs:
             sudo rm -f /etc/nginx/sites-enabled/default
             
             # Test Nginx configuration
-            if sudo nginx -t; then
+            echo "=== TESTING NGINX CONFIGURATION ==="
+            sudo nginx -t
+            if [ $? -eq 0 ]; then
               echo "Nginx configuration test passed"
             else
               echo "ERROR: Nginx configuration test failed!"
+              echo "=== NGINX CONFIGURATION DEBUG ==="
+              echo "Configuration file contents:"
+              cat /etc/nginx/sites-available/immigration-portal
               exit 1
             fi
             
             # Start and enable Nginx
+            echo "=== STARTING NGINX ==="
             sudo systemctl start nginx
             sudo systemctl enable nginx
             sudo systemctl reload nginx
