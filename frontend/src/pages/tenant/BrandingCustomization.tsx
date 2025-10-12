@@ -206,11 +206,7 @@ export const BrandingCustomization: React.FC = () => {
 
   // Load branding settings
   const loadBranding = async () => {
-    console.log('🎨 BrandingCustomization: loadBranding called');
-    console.log('🎨 isTenantAdmin:', isTenantAdmin);
-    
     if (!isTenantAdmin) {
-      console.log('❌ BrandingCustomization: Not tenant admin, returning early');
       setError('Not authorized - not a tenant admin');
       setIsLoading(false);
       return;
@@ -220,8 +216,6 @@ export const BrandingCustomization: React.FC = () => {
     setError(null);
 
     try {
-      console.log('🎨 BrandingCustomization: Making API call to /tenant/branding');
-      
       // Add timeout to prevent hanging
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('API call timeout after 10 seconds')), 10000);
@@ -230,27 +224,16 @@ export const BrandingCustomization: React.FC = () => {
       const apiCallPromise = tenantApiService.get('/tenant/branding');
       const response = await Promise.race([apiCallPromise, timeoutPromise]) as any;
       
-      console.log('🎨 BrandingCustomization: API response:', response);
-      
       if (response && response.success) {
         setBranding({ ...branding, ...response.data });
-        console.log('✅ BrandingCustomization: Branding loaded successfully');
       } else {
         setError('Failed to load branding settings');
-        console.log('❌ BrandingCustomization: API returned success: false or no response');
       }
     } catch (err: any) {
-      console.log('❌ BrandingCustomization: API call failed:', err);
-      console.log('❌ BrandingCustomization: Error details:', {
-        message: err.message,
-        stack: err.stack,
-        name: err.name
-      });
       log.error('Failed to load branding settings', { error: err.message });
       setError('Failed to load branding settings: ' + err.message);
     } finally {
       setIsLoading(false);
-      console.log('🎨 BrandingCustomization: Loading completed');
     }
   };
 

@@ -82,13 +82,6 @@ const TenantAdminDashboard: React.FC = () => {
     }
   ];
   
-  console.log('🔍 TenantAdminDashboardFixed: Using real data');
-  console.log('  - tenantStats:', !!tenantStats);
-  console.log('  - recentActivity:', recentActivity?.length || 0);
-  console.log('  - isLoading:', isLoading);
-  console.log('  - error:', error);
-  console.log('  - safeTenantStats:', !!safeTenantStats);
-  console.log('  - safeRecentActivity:', safeRecentActivity?.length || 0);
 
   // Data is now automatically loaded by React Query hooks
   // No manual loading needed!
@@ -183,18 +176,6 @@ const TenantAdminDashboard: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Debug Info */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-            <h4 className="font-semibold text-yellow-800">Debug Info:</h4>
-            <p className="text-sm text-yellow-700">
-              Stats: {JSON.stringify(tenantStats)}, 
-              Activity: {recentActivity?.length || 0} items, 
-              Loading: {isLoading ? 'Yes' : 'No'}, 
-              Error: {error ? 'Yes' : 'No'}
-            </p>
-          </div>
-        )}
 
         {/* Dashboard Content */}
         <motion.div 

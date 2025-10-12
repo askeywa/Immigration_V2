@@ -85,7 +85,9 @@ class DomainResolutionService {
    */
   private parseDomainType(domain: string) {
     const mainDomain = this.getMainDomain();
-    const isMainDomain = domain === mainDomain;
+    // Extract domain without port for comparison
+    const domainWithoutPort = domain.split(':')[0];
+    const isMainDomain = domainWithoutPort === mainDomain || domain === mainDomain;
     
     // Check if it's a subdomain
     const subdomainPattern = new RegExp(`^([a-zA-Z0-9][a-zA-Z0-9-]*)\\.${mainDomain.replace('.', '\\.')}$`);

@@ -64,15 +64,11 @@ const SuperAdminUsers: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      console.log('🔄 SuperAdminUsers: Starting fetchUsers...', new Date().toISOString());
       setLoading(true);
       
       // Fetch ALL users for client-side filtering and pagination
       // Removed cache-busting parameter to enable backend caching
       const response = await superAdminApi.get(`/super-admin/users?page=1&limit=1000`); // Get all users
-      console.log('📥 SuperAdminUsers: API response:', response);
-      console.log('👥 SuperAdminUsers: Users data:', response.data?.data?.users);
-      console.log('📄 SuperAdminUsers: Pagination data:', response.data?.pagination);
       
       // CRITICAL: Extract pagination FIRST before setting users
       const paginationData = response.data?.pagination || {};
@@ -103,7 +99,6 @@ const SuperAdminUsers: React.FC = () => {
       // Ensure DOM updates complete before hiding loader
       setTimeout(() => {
         setLoading(false);
-        console.log('✅ SuperAdminUsers: Fetch complete...', new Date().toISOString());
       }, 100);
       
     } catch (error) {
@@ -137,17 +132,10 @@ const SuperAdminUsers: React.FC = () => {
       user.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
       (user.tenant?.name && user.tenant.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
     
-    // Debug logging
-    if (debouncedSearchTerm !== '') {
-      console.log(`🔍 Users search debug - User: "${user.firstName} ${user.lastName}", Email: "${user.email}", Tenant: "${user.tenant?.name}"`);
-      console.log(`🔍 Search term: "${debouncedSearchTerm}", Matches: ${matchesSearch}`);
-    }
     
     return matchesSearch;
   });
   
-  // Debug: Log filtering results
-  console.log(`🔍 Users filtering results: ${users.length} total users, ${filteredUsers.length} after filtering`);
 
   // Client-side pagination for filtered results
   const startIndex = (currentPage - 1) * itemsPerPage;

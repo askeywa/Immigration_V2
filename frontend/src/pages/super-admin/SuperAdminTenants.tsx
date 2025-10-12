@@ -165,6 +165,7 @@ const CreateTenantForm: React.FC<CreateTenantFormProps> = ({ onSubmit, onCancel,
   const emailRef = React.useRef<HTMLInputElement>(null);
   const passwordRef = React.useRef<HTMLInputElement>(null);
   const [validationError, setValidationError] = React.useState<string | null>(null);
+  const [mustChangePassword, setMustChangePassword] = React.useState<boolean>(false);
 
   // Clear fields when component mounts (modal opens) or when resetTrigger changes
   React.useEffect(() => {
@@ -174,6 +175,7 @@ const CreateTenantForm: React.FC<CreateTenantFormProps> = ({ onSubmit, onCancel,
     if (firstNameRef.current) firstNameRef.current.value = '';
     if (emailRef.current) emailRef.current.value = '';
     if (passwordRef.current) passwordRef.current.value = '';
+    setMustChangePassword(false);
   }, [resetTrigger]); // Run on mount and when resetTrigger changes
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -197,7 +199,8 @@ const CreateTenantForm: React.FC<CreateTenantFormProps> = ({ onSubmit, onCancel,
         firstName: nameParts[0] || '',
         lastName: nameParts.length > 1 ? nameParts.slice(1).join(' ') : nameParts[0] || '', // Use firstName as lastName if no last name provided
         email: emailRef.current?.value || '',
-        password: passwordRef.current?.value || ''
+        password: passwordRef.current?.value || '',
+        mustChangePassword: mustChangePassword
       }
     };
     
@@ -395,6 +398,24 @@ const CreateTenantForm: React.FC<CreateTenantFormProps> = ({ onSubmit, onCancel,
             </div>
           )}
           {/* Password strength indicators removed for simplicity with uncontrolled inputs */}
+        </div>
+
+        {/* Password Change Option */}
+        <div className="mt-4">
+          <label className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              checked={mustChangePassword}
+              onChange={(e) => setMustChangePassword(e.target.checked)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Force password change on first login
+            </span>
+          </label>
+          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 ml-7">
+            ☑️ Admin will be required to change password when they first log in
+          </div>
         </div>
       </div>
 
@@ -730,17 +751,10 @@ const SuperAdminTenants: React.FC = () => {
     
     const matchesStatus = statusFilter === 'all' || tenant.status === statusFilter;
     
-    // Debug logging
-    if (searchTerm !== '') {
-      console.log(`🔍 Search debug - Tenant: "${tenant.name}", Domain: "${tenant.domain}", Email: "${tenant.contactInfo?.email}"`);
-      console.log(`🔍 Search term: "${searchTerm}", Matches: ${matchesSearch}`);
-    }
     
     return matchesSearch && matchesStatus;
   });
   
-  // Debug: Log filtering results
-  console.log(`🔍 Filtering results: ${tenants.length} total tenants, ${filteredTenants.length} after filtering`);
 
   // Pagination helpers - Use filtered tenants for display
   const startIndex = (currentPage - 1) * itemsPerPage;

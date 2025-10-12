@@ -26,6 +26,7 @@ export interface TenantCreationData {
     lastName: string;
     email: string;
     password: string;
+    mustChangePassword?: boolean; // NEW: Password change option
   };
   subscriptionPlan?: string;
 }

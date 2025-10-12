@@ -19,6 +19,15 @@
 @layer base {
   * {
     @apply border-gray-200;
+    /* FORCE prevent horizontal overflow on ALL elements */
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+  
+  html {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100% !important;
   }
   
   body {
@@ -26,6 +35,16 @@
     font-feature-settings: "rlig" 1, "calt" 1;
     /* Use system fonts as fallback for instant render */
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    /* AGGRESSIVE horizontal overflow prevention */
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+  }
+
+  /* Force all containers to respect viewport width */
+  main, .main-content, .container, .max-w-7xl, .max-w-6xl, .max-w-4xl, .max-w-2xl {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
   }
   
   h1, h2, h3, h4, h5, h6 {

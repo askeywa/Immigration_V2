@@ -160,8 +160,8 @@ export class AuthService {
     user.lastLogin = new Date();
     await user.save();
 
-      const token = this.generateToken(user._id?.toString() || '', tenant._id?.toString() || '', user.role);
-      return { user, token, tenant: tenant as ITenant, subscription: subscription || undefined };
+    const token = this.generateToken(user._id?.toString() || '', tenant._id?.toString() || '', user.role);
+    return { user, token, tenant: tenant as ITenant, subscription: subscription || undefined };
       
     } catch (error) {
       if (error instanceof AuthenticationError) {
@@ -180,6 +180,7 @@ export class AuthService {
     tenantId?: string;
     companyName?: string;
     domain?: string;
+    mustChangePassword?: boolean; // NEW: Password change option
   }): Promise<{ user: IUser; token: string; tenant?: ITenant; subscription?: ISubscription }> {
     // Validate input data
     const emailValidation = validateEmail(userData.email);
@@ -325,7 +326,11 @@ export class AuthService {
       ...userData,
       role: userData.role || 'user',
       tenantId: userData.tenantId ? new mongoose.Types.ObjectId(userData.tenantId) : tenant?._id,
-      isActive: true
+      isActive: true,
+      // Password change system fields
+      mustChangePassword: userData.mustChangePassword || false,
+      passwordChangeRequired: userData.mustChangePassword || false,
+      isFirstLogin: true
     });
     
     // Save user with timeout protection
@@ -357,6 +362,7 @@ export class AuthService {
     lastName: string;
     role?: 'admin' | 'user';
     tenantId: string;
+    mustChangePassword?: boolean; // NEW: Password change option
   }, createdBy: string): Promise<{ user: IUser; token: string }> {
     // Validate tenant exists and is active
     const tenant = await Tenant.findById(userData.tenantId);

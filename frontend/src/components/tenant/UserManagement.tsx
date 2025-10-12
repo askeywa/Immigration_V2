@@ -15,11 +15,14 @@ import {
   PencilIcon,
   EyeIcon,
   CheckIcon,
-  XMarkIcon
+  XMarkIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 import { useTenantUsers, useUserStats, useBulkUpdateUsers, useRefreshUserData } from '@/hooks/useTenantUsers';
 import { tenantUserService, UserFilters, TenantUser, BulkUpdateRequest } from '@/services/tenantUserService';
 import { Card } from '@/components/ui/card';
+import { AssignClientModal } from './AssignClientModal';
+import UserDetailsReadOnly from './UserDetailsReadOnly';
 
 interface UserManagementProps {
   className?: string;
@@ -41,6 +44,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ className = '' }
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [showUserDetails, setShowUserDetails] = useState<string | null>(null);
   const [bulkAction, setBulkAction] = useState<string>('');
+  
+  // Assignment modal state
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedClientForAssignment, setSelectedClientForAssignment] = useState<{id: string; name: string} | null>(null);
 
   // React Query hooks
   const { data: usersData, isLoading, error, refetch } = useTenantUsers(filters);
@@ -97,6 +104,26 @@ export const UserManagement: React.FC<UserManagementProps> = ({ className = '' }
     } else {
       setSelectedUsers(users.map(user => user._id));
     }
+  };
+
+  // Handle client assignment
+  const handleAssignClient = (userId: string, userName: string) => {
+    setSelectedClientForAssignment({ id: userId, name: userName });
+    setShowAssignModal(true);
+  };
+
+  const handleAssignmentComplete = () => {
+    // Refresh the user list after assignment
+    refetch();
+  };
+
+  // Handle view user details
+  const handleViewUserDetails = (userId: string) => {
+    setShowUserDetails(userId);
+  };
+
+  const handleCloseUserDetails = () => {
+    setShowUserDetails(null);
   };
 
   // Get filter options
@@ -411,7 +438,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ className = '' }
                             </div>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
+                            <div 
+                              className="text-sm font-medium text-gray-900 cursor-pointer hover:text-blue-600 transition-colors duration-200"
+                              onClick={() => handleViewUserDetails(user._id)}
+                              title="Click to view user details"
+                            >
                               {tenantUserService.formatUserName(user)}
                             </div>
                             <div className="text-sm text-gray-500">{user.email}</div>
@@ -445,13 +476,22 @@ export const UserManagement: React.FC<UserManagementProps> = ({ className = '' }
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-2">
                           <button
+                            onClick={() => handleAssignClient(user._id, tenantUserService.formatUserName(user))}
+                            className="text-green-600 hover:text-green-900 transition-colors duration-200"
+                            title="Assign to Team Member"
+                          >
+                            <UserGroupIcon className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => setShowUserDetails(user._id)}
                             className="text-blue-600 hover:text-blue-900 transition-colors duration-200"
+                            title="View Details"
                           >
                             <EyeIcon className="w-4 h-4" />
                           </button>
                           <button
                             className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
+                            title="Edit User"
                           >
                             <PencilIcon className="w-4 h-4" />
                           </button>
@@ -507,6 +547,51 @@ export const UserManagement: React.FC<UserManagementProps> = ({ className = '' }
             </button>
           </div>
         </motion.div>
+      )}
+
+      {/* Assignment Modal */}
+      {selectedClientForAssignment && (
+        <AssignClientModal
+          isOpen={showAssignModal}
+          onClose={() => {
+            setShowAssignModal(false);
+            setSelectedClientForAssignment(null);
+          }}
+          clientId={selectedClientForAssignment.id}
+          clientName={selectedClientForAssignment.name}
+          onAssignmentComplete={handleAssignmentComplete}
+        />
+      )}
+
+      {/* User Details Modal */}
+      {showUserDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+            <div className="relative">
+              <button
+                onClick={handleCloseUserDetails}
+                className="absolute top-4 right-4 z-10 p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+              <UserDetailsReadOnly
+                user={{
+                  _id: showUserDetails,
+                  email: usersData?.users?.find(u => u._id === showUserDetails)?.email || '',
+                  firstName: usersData?.users?.find(u => u._id === showUserDetails)?.firstName || '',
+                  lastName: usersData?.users?.find(u => u._id === showUserDetails)?.lastName || '',
+                  role: usersData?.users?.find(u => u._id === showUserDetails)?.role as 'admin' | 'user' || 'user',
+                  status: usersData?.users?.find(u => u._id === showUserDetails)?.status as 'active' | 'inactive' | 'pending' || 'active',
+                  lastLogin: usersData?.users?.find(u => u._id === showUserDetails)?.lastLogin || new Date().toISOString(),
+                  createdAt: usersData?.users?.find(u => u._id === showUserDetails)?.createdAt || new Date().toISOString(),
+                  profileComplete: usersData?.users?.find(u => u._id === showUserDetails)?.profileComplete || false,
+                  profileData: {}
+                }}
+                onBack={handleCloseUserDetails}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

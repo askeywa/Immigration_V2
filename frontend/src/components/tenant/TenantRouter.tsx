@@ -245,6 +245,16 @@ export const TenantRouter: React.FC = () => {
                   <TenantAdminRoutes.Users />
                 </TenantAccessGuard>
               } />
+              <Route path="/tenant/team-members" element={
+                <TenantAccessGuard requiredRole="admin">
+                  <TenantAdminRoutes.TeamMembers />
+                </TenantAccessGuard>
+              } />
+              <Route path="/tenant/team-performance" element={
+                <TenantAccessGuard requiredRole="admin">
+                  <TenantAdminRoutes.TeamPerformance />
+                </TenantAccessGuard>
+              } />
               <Route path="/tenant/profiles" element={
                 <TenantAccessGuard requiredRole="admin">
                   <TenantAdminRoutes.Profiles />

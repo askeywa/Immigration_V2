@@ -10,12 +10,12 @@ import { tenantCacheMiddleware, userCacheMiddleware } from '../middleware/cacheM
 
 const router = Router();
 
-// Apply tenant resolution and authentication to all routes
-router.use(resolveTenant, rowLevelSecurity, authenticate);
-
-// Tenant resolution endpoints (public for domain resolution)
+// Tenant resolution endpoints (public for domain resolution) - must be before authentication
 router.get('/resolve/subdomain/:subdomain', asyncHandler(TenantController.resolveBySubdomain));
 router.get('/resolve/domain/:domain', asyncHandler(TenantController.resolveByDomain));
+
+// Apply tenant resolution and authentication to remaining routes
+router.use(resolveTenant, rowLevelSecurity, authenticate);
 
 // Get user's accessible tenants
 router.get('/user-tenants', asyncHandler(TenantController.getUserTenants));

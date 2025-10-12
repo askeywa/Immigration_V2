@@ -40,7 +40,7 @@ class SecurityHardening {
 
   constructor() {
     this.config = {
-      maxLoginAttempts: 5,
+      maxLoginAttempts: process.env.NODE_ENV === 'production' ? 5 : 100, // 5 in production, 100 in development for testing
       lockoutDuration: 30 * 60 * 1000, // 30 minutes
       sessionTimeout: 8 * 60 * 60 * 1000, // 8 hours
       passwordPolicy: {
@@ -135,7 +135,7 @@ class SecurityHardening {
       // Strict rate limiting for auth endpoints
       auth: rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 5, // 5 login attempts per 15 minutes
+        max: process.env.NODE_ENV === 'production' ? 5 : 100, // 5 in production, 100 in development for testing
         message: {
           success: false,
           message: 'Too many authentication attempts',

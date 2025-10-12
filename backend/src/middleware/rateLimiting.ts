@@ -37,10 +37,10 @@ export const strictRateLimit = rateLimit({
   legacyHeaders: false,
 });
 
-// Authentication rate limiting - Industry standard: 5 attempts per 15 minutes
+// Authentication rate limiting - Industry standard: 5 attempts per 15 minutes (100 in development for testing)
 export const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 auth requests per windowMs
+  max: process.env.NODE_ENV === 'production' ? 5 : 100, // 5 in production, 100 in development for testing
   message: {
     success: false,
     message: 'Too many login attempts. Please try again in 15 minutes.',
@@ -62,10 +62,6 @@ export const authRateLimit = rateLimit({
       error: 'RATE_LIMIT_EXCEEDED',
       retryAfter: 900 // 15 minutes in seconds
     });
-  },
-  skip: (req: Request) => {
-    // Skip rate limiting in development for testing
-    return process.env.NODE_ENV === 'development';
   }
 });
 
@@ -162,4 +158,32 @@ export const globalRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+});
+
+// Password change rate limiting - Stricter limits for security
+export const passwordChangeRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 password change attempts per 15 minutes
+  message: {
+    success: false,
+    message: 'Too many password change attempts. Please try again in 15 minutes.',
+    error: 'RATE_LIMIT_EXCEEDED'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req: Request, res: Response) => {
+    console.warn('🚫 Rate limit exceeded for password change attempts', {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      userId: (req as any).user?._id,
+      timestamp: new Date().toISOString()
+    });
+    
+    res.status(429).json({
+      success: false,
+      message: 'Too many password change attempts. Please try again in 15 minutes.',
+      error: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: 900 // 15 minutes in seconds
+    });
+  }
 });

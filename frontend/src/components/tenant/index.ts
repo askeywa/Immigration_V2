@@ -1,3 +1,6 @@
-// frontend/src/components/tenant/index.ts
-export { TenantSwitcher } from './TenantSwitcher';
-export { TenantContextIndicator } from './TenantContextIndicator';
+// Re-export all tenant components
+export { AssignClientModal } from './AssignClientModal';
+export { ReassignClientModal } from './ReassignClientModal';
+export { CompleteAssignmentModal } from './CompleteAssignmentModal';
+export { AssignmentCard } from './AssignmentCard';
+export { UserManagement } from './UserManagement';

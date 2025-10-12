@@ -288,6 +288,10 @@ export class TenantService {
           tenantId: tenant._id,
           isActive: true,
           isEmailVerified: true,
+          // Password change system fields
+          mustChangePassword: tenantData.adminUser.mustChangePassword || false,
+          passwordChangeRequired: tenantData.adminUser.mustChangePassword || false,
+          isFirstLogin: true,
           permissions: [
             'user.create',
             'user.read',

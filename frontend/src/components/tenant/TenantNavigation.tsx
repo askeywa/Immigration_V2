@@ -42,8 +42,10 @@ const TenantNavigation: React.FC<TenantNavigationProps> = ({ variant = 'default'
       items.push(
         { path: '/tenant/dashboard', label: 'Dashboard', icon: '🏠' },
         { path: '/tenant/users', label: 'Users', icon: '👥' },
+        { path: '/tenant/team-members', label: 'Team Members', icon: '👨‍💼' },
+        { path: '/tenant/team-performance', label: 'Team Performance', icon: '📊' },
         { path: '/tenant/analytics', label: 'Analytics', icon: '📈' },
-        { path: '/tenant/reports', label: 'Reports', icon: '📊' }
+        { path: '/tenant/reports', label: 'Reports', icon: '📄' }
       );
     } else if (isTenantUser) {
       items.push(

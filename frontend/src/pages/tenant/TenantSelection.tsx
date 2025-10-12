@@ -43,13 +43,6 @@ export const TenantSelection: React.FC = () => {
       const response = await tenantApiService.get<{ tenants: Tenant[] }>('/tenants/user-tenants');
       
       if (response.success && response.data) {
-        console.log('🔍 TenantSelection: Raw tenant data received:', response.data);
-        console.log('🔍 TenantSelection: First tenant structure:', response.data.tenants[0]);
-        if (response.data.tenants[0]?.subscription) {
-          console.log('🔍 TenantSelection: First tenant subscription:', response.data.tenants[0].subscription);
-          console.log('🔍 TenantSelection: Subscription type:', typeof response.data.tenants[0].subscription);
-          console.log('🔍 TenantSelection: Subscription keys:', Object.keys(response.data.tenants[0].subscription));
-        }
         
         // Clean the tenant data to prevent object rendering errors
         const cleanedTenants = response.data.tenants.map(tenant => ({
@@ -61,7 +54,6 @@ export const TenantSelection: React.FC = () => {
           } : null
         }));
         
-        console.log('🔍 TenantSelection: Cleaned tenant data:', cleanedTenants);
         setTenants(cleanedTenants);
         
         // If user has only one tenant, auto-select it

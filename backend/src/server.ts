@@ -131,6 +131,7 @@ import tenantResolutionRoutes from './routes/tenantResolutionRoutes';
 import databaseMigrationRoutes from './routes/databaseMigrationRoutes';
 import themeRoutes from './routes/themeRoutes';
 import superAdminRoutes from './routes/superAdminRoutes';
+import teamMemberRoutes from './routes/teamMemberRoutes';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -166,7 +167,7 @@ app.use(requestSizeLimit('10mb'));
 // Rate limiting middleware
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Higher limit for development
+  max: process.env.NODE_ENV === 'production' ? 100 : 10000, // Much higher limit for development testing
   message: 'Too many requests from this IP, please try again later.',
   skip: (req: any) => {
     // Skip rate limiting for health checks
@@ -315,6 +316,7 @@ app.use('/api/health', healthRoutes);
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/team-members', teamMemberRoutes);
 app.use('/api/profiles', profileRoutes);
 app.use('/api/draw', drawRoutes);
 app.use('/api/files', fileRoutes);

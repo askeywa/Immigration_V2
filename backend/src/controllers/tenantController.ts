@@ -76,6 +76,24 @@ export class TenantController {
     const { domain } = req.params;
 
     try {
+      // Handle localhost in development - return super admin info
+      if (domain === 'localhost' || domain === '127.0.0.1') {
+        log.info('Localhost domain resolution - returning super admin info', { domain });
+        res.json({
+          success: true,
+          tenant: {
+            _id: 'super-admin',
+            name: 'Super Admin',
+            domain: 'localhost',
+            status: 'active',
+            settings: {}
+          },
+          subscription: null
+        });
+        return;
+      }
+
+      // For production domains, implement actual tenant lookup
       // TODO: Implement getTenantByCustomDomain method in TenantService
       const tenant: any = null; // await TenantService.getTenantByCustomDomain(domain);
       

@@ -128,6 +128,24 @@ class TenantUserService {
   }
 
   /**
+   * Get user by ID with detailed information
+   */
+  async getUserById(userId: string): Promise<TenantUser> {
+    try {
+      const response = await api.get<ApiResponse<TenantUser>>(`/users/${userId}`);
+      
+      if (response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      throw new Error(response.data.message || 'Failed to fetch user details');
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Bulk update users
    */
   async bulkUpdateUsers(request: BulkUpdateRequest): Promise<BulkUpdateResponse> {

@@ -9,11 +9,16 @@ import {
   switchTenant, 
   refreshToken 
 } from '../controllers/authController';
+import { 
+  changePassword, 
+  forcePasswordChange, 
+  checkPasswordChangeRequired 
+} from '../controllers/passwordController';
 import { validateLogin, validateRegister, validateLoginMiddleware, validateLoginDebug } from '../middleware/validation';
 import { authenticate } from '../middleware/auth';
 import { resolveTenantEnhanced as resolveTenant } from '../middleware/enhancedTenantResolution';
 import { rowLevelSecurity } from '../middleware/rowLevelSecurity';
-import { authRateLimit, globalRateLimit } from '../middleware/rateLimiting';
+import { authRateLimit, globalRateLimit, passwordChangeRateLimit } from '../middleware/rateLimiting';
 
 const router = Router();
 
@@ -59,5 +64,11 @@ router.get('/permissions', globalRateLimit, resolveTenant, rowLevelSecurity, aut
 router.get('/tenants', globalRateLimit, resolveTenant, rowLevelSecurity, authenticate, getUserTenants);
 router.post('/switch-tenant', globalRateLimit, resolveTenant, rowLevelSecurity, authenticate, switchTenant);
 router.post('/refresh', globalRateLimit, resolveTenant, rowLevelSecurity, authenticate, refreshToken);
+
+// Password change routes
+// Note: These routes don't need rowLevelSecurity as they work with the authenticated user's context
+router.post('/change-password', passwordChangeRateLimit, authenticate, changePassword);
+router.post('/force-password-change/:userId', passwordChangeRateLimit, resolveTenant, rowLevelSecurity, authenticate, forcePasswordChange);
+router.get('/password-change-required', globalRateLimit, authenticate, checkPasswordChangeRequired);
 
 export default router;

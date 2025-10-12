@@ -57,12 +57,25 @@ export interface User {
     firstName: string;
     lastName: string;
     name?: string; // Alternative name field
-    role: 'admin' | 'user' | 'super_admin' | 'tenant_admin';
+    role: 'admin' | 'user' | 'super_admin' | 'tenant_admin' | 'team_member';
     tenantId?: string;
     isActive: boolean;
     phone?: string;
     status: 'active' | 'inactive' | 'pending' | 'suspended';
     lastLogin?: string;
+    // Password change system fields
+    mustChangePassword: boolean;
+    isFirstLogin: boolean;
+    passwordChangeRequired: boolean;
+    // User creation tracking
+    createdBy?: string;
+    // Team member/client assignment tracking
+    assignedTo?: string;
+    onboardedBy?: string;
+    onboardingDate?: string;
+    // Case information (for clients)
+    caseType?: string;
+    caseStatus?: string;
     createdAt: string;
     updatedAt: string;
     profile?: {
@@ -114,6 +127,22 @@ export interface User {
       token: string;
       tenant?: Tenant;
       subscription?: Subscription;
+    };
+  }
+
+  // Password change request interface
+  export interface PasswordChangeRequest {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }
+
+  // Password change response interface
+  export interface PasswordChangeResponse {
+    success: boolean;
+    message: string;
+    data?: {
+      user: User;
     };
   }
   

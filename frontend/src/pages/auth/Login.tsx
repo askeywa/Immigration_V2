@@ -8,6 +8,9 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { preloadRoute } from '@/utils/preload';
 import { useAuthStore } from '@/store/authStore';
+import PasswordChangeModal from '@/components/auth/PasswordChangeModal';
+import { passwordService } from '@/services/passwordService';
+import { PasswordChangeResponse } from '@/types/auth.types';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -19,6 +22,11 @@ export const Login: React.FC = () => {
   const [activeSection, setActiveSection] = useState('home');
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{email?: string; password?: string; tenantDomain?: string}>({});
+  
+  // Password change modal state
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
+  const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
+  const [isFirstLogin, setIsFirstLogin] = useState(false);
   
   const { login, user } = useAuthStore();
   
@@ -53,9 +61,22 @@ export const Login: React.FC = () => {
       await login(email, password, tenantDomain || '');
       console.log('✅ Login successful!');
       
-      // Simple redirect after successful login
+      // Check if password change is required
       const currentUser = useAuthStore.getState().user;
       if (currentUser) {
+        // Check password change requirements
+        const requiresPasswordChange = currentUser.mustChangePassword || currentUser.passwordChangeRequired;
+        const isFirstLogin = currentUser.isFirstLogin;
+        
+        if (requiresPasswordChange) {
+          console.log('🔍 Password change required, showing modal');
+          setPasswordChangeRequired(true);
+          setIsFirstLogin(isFirstLogin);
+          setShowPasswordChangeModal(true);
+          return; // Don't redirect yet
+        }
+        
+        // Normal redirect if no password change required
         let redirectPath = '/dashboard';
         if (currentUser.role === 'super_admin') {
           redirectPath = '/super-admin';
@@ -118,6 +139,38 @@ export const Login: React.FC = () => {
     } finally {
       setIsLoggingIn(false);
     }
+  };
+
+  // Password change modal handlers
+  const handlePasswordChangeSuccess = (response: PasswordChangeResponse) => {
+    console.log('✅ Password changed successfully');
+    setShowPasswordChangeModal(false);
+    
+    // Update user in store with new password change status
+    const currentUser = useAuthStore.getState().user;
+    if (currentUser && response.data?.user) {
+      useAuthStore.getState().setUser(response.data.user);
+    }
+    
+    // Redirect to dashboard
+    const user = useAuthStore.getState().user;
+    if (user) {
+      let redirectPath = '/dashboard';
+      if (user.role === 'super_admin') {
+        redirectPath = '/super-admin';
+      } else if (user.role === 'admin' || user.role === 'tenant_admin') {
+        redirectPath = '/tenant/dashboard';
+      }
+      window.location.href = redirectPath;
+    }
+  };
+
+  const handlePasswordChangeCancel = () => {
+    // For mandatory password changes, we can't cancel
+    if (passwordChangeRequired) {
+      return;
+    }
+    setShowPasswordChangeModal(false);
   };
 
   const renderContent = () => {
@@ -638,6 +691,21 @@ export const Login: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* Password Change Modal */}
+      <PasswordChangeModal
+        isOpen={showPasswordChangeModal}
+        onClose={() => setShowPasswordChangeModal(false)}
+        onSuccess={handlePasswordChangeSuccess}
+        onCancel={handlePasswordChangeCancel}
+        isMandatory={passwordChangeRequired}
+        title={isFirstLogin ? "Welcome! Please Set Your Password" : "Password Change Required"}
+        description={
+          isFirstLogin 
+            ? "This is your first time logging in. Please set a new password to secure your account."
+            : "For security reasons, you must change your password before continuing."
+        }
+      />
     </div>
   );
 };

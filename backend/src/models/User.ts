@@ -7,7 +7,7 @@ export interface IUser extends Document {
   password: string;
   firstName: string;
   lastName: string;
-  role: 'admin' | 'user' | 'super_admin' | 'tenant_admin';
+  role: 'admin' | 'user' | 'super_admin' | 'tenant_admin' | 'team_member';
   tenantId?: mongoose.Types.ObjectId;
   isActive: boolean;
   lastLogin?: Date;
@@ -18,11 +18,26 @@ export interface IUser extends Document {
     language?: string;
   };
   permissions?: string[];
+  // Password change system fields
+  mustChangePassword: boolean;
+  isFirstLogin: boolean;
+  passwordChangeRequired: boolean;
+  // User creation tracking
+  createdBy?: mongoose.Types.ObjectId;
+  // Team member/client assignment tracking
+  assignedTo?: mongoose.Types.ObjectId; // Current team member responsible for this client
+  onboardedBy?: mongoose.Types.ObjectId; // Team member who initially brought this client
+  onboardingDate?: Date;
+  // Case information (for clients)
+  caseType?: string;
+  caseStatus?: string;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
   isSuperAdmin(): boolean;
+  isTeamMember(): boolean;
   belongsToTenant(tenantId: string | mongoose.Types.ObjectId): boolean;
+  requiresPasswordChange(): boolean;
 }
 
 const userSchema = new Schema<IUser>({
@@ -50,7 +65,7 @@ const userSchema = new Schema<IUser>({
   },
   role: {
     type: String,
-    enum: ['admin', 'user', 'super_admin', 'tenant_admin'],
+    enum: ['admin', 'user', 'super_admin', 'tenant_admin', 'team_member'],
     default: 'user',
   },
   tenantId: {
@@ -87,6 +102,66 @@ const userSchema = new Schema<IUser>({
     type: String,
     trim: true,
   }],
+  // Password change system fields
+  mustChangePassword: {
+    type: Boolean,
+    default: false,
+  },
+  isFirstLogin: {
+    type: Boolean,
+    default: true,
+  },
+  passwordChangeRequired: {
+    type: Boolean,
+    default: false,
+  },
+  // User creation tracking
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  // Team member/client assignment tracking
+  assignedTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TeamMember',
+  },
+  onboardedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TeamMember',
+  },
+  onboardingDate: Date,
+  // Case information (for clients)
+  caseType: {
+    type: String,
+    enum: [
+      'Express Entry',
+      'Family Sponsorship',
+      'Study Permit',
+      'Work Permit',
+      'Visitor Visa',
+      'Citizenship',
+      'Appeal/Refugee',
+      'Business Immigration',
+      'Provincial Nominee',
+      'Other'
+    ],
+  },
+  caseStatus: {
+    type: String,
+    enum: [
+      'Initial Contact',
+      'Contract Signed',
+      'Document Collection',
+      'Application Preparation',
+      'Application Submitted',
+      'Additional Documents Requested',
+      'Interview Scheduled',
+      'Decision Pending',
+      'Approved',
+      'Rejected',
+      'Case Closed'
+    ],
+  },
 }, {
   timestamps: true,
 });
@@ -97,6 +172,14 @@ userSchema.index({ tenantId: 1, isActive: 1 });
 userSchema.index({ email: 1, tenantId: 1 });
 // CRITICAL: Add email-only index for fast login queries
 userSchema.index({ email: 1, isActive: 1 });
+// Password change system indexes
+userSchema.index({ mustChangePassword: 1, isFirstLogin: 1 });
+userSchema.index({ createdBy: 1 });
+// Team member/client assignment indexes
+userSchema.index({ assignedTo: 1 });
+userSchema.index({ onboardedBy: 1 });
+userSchema.index({ tenantId: 1, assignedTo: 1 });
+userSchema.index({ caseType: 1, caseStatus: 1 });
 // Note: email field already has unique: true in schema definition
 
 // Hash password before saving
@@ -143,6 +226,11 @@ userSchema.methods.isSuperAdmin = function (): boolean {
   return this.role === 'super_admin';
 };
 
+// Check if user is a team member
+userSchema.methods.isTeamMember = function (): boolean {
+  return this.role === 'team_member';
+};
+
 // Check if user belongs to a specific tenant
 userSchema.methods.belongsToTenant = function (tenantId: string | mongoose.Types.ObjectId): boolean {
   if (this.isSuperAdmin()) {
@@ -152,6 +240,11 @@ userSchema.methods.belongsToTenant = function (tenantId: string | mongoose.Types
     return false;
   }
   return this.tenantId.toString() === tenantId.toString();
+};
+
+// Check if user requires password change
+userSchema.methods.requiresPasswordChange = function (): boolean {
+  return this.mustChangePassword || this.passwordChangeRequired;
 };
 
 // Remove password from JSON output
