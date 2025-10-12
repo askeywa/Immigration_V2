@@ -138,7 +138,7 @@ class TenantUserService {
         return response.data.data;
       }
       
-      throw new Error(response.data.message || 'Failed to fetch user details');
+      throw new Error(response.data.error || 'Failed to fetch user details');
     } catch (error) {
       console.error('Error fetching user details:', error);
       throw error;
